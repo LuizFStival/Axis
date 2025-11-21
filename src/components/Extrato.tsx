@@ -143,20 +143,20 @@ export function Extrato() {
       );
     });
 
-    const getTaggedTotal = (tag: 'Essencial' | 'SupÃƒÆ’Ã‚Â©rfluo' | 'Investimento') =>
+    const getTaggedTotal = (tag: 'Essencial' | 'Superfluo' | 'Investimento') =>
       currentMonthTxns
         .filter(txn => {
           const category = categories.find(c => c.id === txn.categoryId);
           const targets =
-            tag === 'SupÃƒÆ’Ã‚Â©rfluo'
-              ? ['SupÃƒÆ’Ã‚Â©rfluo', 'Superfluo', 'Supersup', 'SupÃƒâ€¡Ã‚Â¸rfluo']
+            tag === 'Superfluo'
+              ? ['Superfluo', 'Supérfluo', 'Supersup', 'SupǸrfluo']
               : [tag];
           return targets.includes(category?.logicTag ?? '') && category?.type === 'Despesa';
         })
         .reduce((sum, txn) => sum + txn.amount, 0);
 
     const essential = getTaggedTotal('Essencial');
-    const superfluous = getTaggedTotal('SupÃƒÆ’Ã‚Â©rfluo');
+    const superfluous = getTaggedTotal('Superfluo');
     const investment = getTaggedTotal('Investimento');
 
     return { essential, superfluous, investment };
