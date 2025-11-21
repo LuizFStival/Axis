@@ -1,4 +1,4 @@
-import { useMemo } from 'react';
+﻿import { useMemo } from 'react';
 import type { LucideIcon } from 'lucide-react';
 import {
   TrendingUp,
@@ -174,7 +174,7 @@ export function Dashboard() {
     icon: creditCardStyle.icon,
     colorClass: creditCardStyle.colorClass,
     badgeClass: creditCardStyle.badgeClass,
-    subtitle: 'CartÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o de CrÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©dito',
+    subtitle: 'Cartão de Crédito',
   }));
 
   const combinedTiles = [...accountTiles, ...cardTiles];
@@ -192,7 +192,7 @@ export function Dashboard() {
     },
     {
       id: 'superfluous',
-      label: 'SupÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â©rfluo',
+      label: 'Supérfluo',
       value: stats.superfluous,
       detail: `${stats.superfluousPercentage.toFixed(0)}%`,
       textColor: isSuperfluousHigh ? 'text-red-600' : 'text-orange-500',
@@ -215,14 +215,14 @@ export function Dashboard() {
       <div className="bg-white rounded-[28px] p-6 shadow-lg border border-slate-100">
         <div className="flex items-center justify-between mb-4">
           <div>
-            <p className="text-sm font-semibold text-slate-900">PatrimÃƒÆ’Ã‚Â´nio LÃƒÆ’Ã‚Â­quido</p>
-            <p className="text-xs text-slate-500">Ativos vs passivos acumulados por mÃƒÆ’Ã‚Âªs</p>
+            <p className="text-sm font-semibold text-slate-900">Patrimônio Líquido</p>
+            <p className="text-xs text-slate-500">Ativos vs passivos acumulados por mês</p>
           </div>
           <span className="text-[11px] font-semibold text-slate-500">Linha motivadora</span>
         </div>
 
         {netWorthSeries.length === 0 ? (
-          <p className="text-sm text-slate-500">Adicione transaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Âµes pagas para ver a evoluÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o.</p>
+          <p className="text-sm text-slate-500">Adicione transações pagas para ver a evolução.</p>
         ) : (
           <NetWorthChart data={netWorthSeries} />
         )}
@@ -231,16 +231,16 @@ export function Dashboard() {
       <div className="bg-[#0f1d35] text-white rounded-[28px] p-6 shadow-2xl space-y-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h3 className="text-sm font-medium text-white/70">DisponÃƒÆ’Ã‚Â­vel para gastar hoje</h3>
+            <h3 className="text-sm font-medium text-white/70">Disponível para gastar hoje</h3>
             <p className="text-4xl font-bold mt-2">{formatCurrency(availableToday)}</p>
             <p className="text-xs text-white/60 mt-1">
-              Renda - contas fixas (marcadas por vocÃƒÆ’Ã‚Âª) - meta investimento ({investmentGoal}%) dividido por {daysInMonth} dias.
+              Renda - contas fixas (marcadas por você) - meta investimento ({investmentGoal}%) dividido por {daysInMonth} dias.
             </p>
           </div>
           <div className="bg-white/10 border border-white/10 rounded-2xl px-3 py-2 text-right">
             <p className="text-[11px] text-white/60 uppercase tracking-wide">Bolso livre</p>
             <p className="text-lg font-semibold leading-tight">{formatCurrency(availableBuffer)}</p>
-            <p className="text-[11px] text-white/50 mt-1">no mÃƒÆ’Ã‚Âªs</p>
+            <p className="text-[11px] text-white/50 mt-1">no mês</p>
           </div>
         </div>
 
@@ -282,12 +282,12 @@ export function Dashboard() {
           </div>
           <div>
             <p className="text-sm font-semibold text-slate-900">Meta de Investimento</p>
-            <p className="text-xs text-slate-500">Investido este m?s</p>
+            <p className="text-xs text-slate-500">Investido este mês</p>
           </div>
         </div>
 
         <div className="flex justify-between text-sm text-slate-600 mb-2">
-          <span>Investido este m?s</span>
+          <span>Investido este mês</span>
           <span className="font-semibold">
             {stats.investmentPercentage.toFixed(1)}% de {investmentGoal}%
           </span>
@@ -310,7 +310,7 @@ export function Dashboard() {
           </div>
           <div>
             <p className="text-sm font-semibold text-slate-900">Farol de Gastos</p>
-            <p className="text-xs text-slate-500">Veja como seus gastos estÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â£o distribuÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â­dos</p>
+            <p className="text-xs text-slate-500">Veja como seus gastos estão distribuídos</p>
           </div>
         </div>
 
@@ -368,9 +368,7 @@ export function Dashboard() {
       {accounts.length === 0 && (
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 text-center">
           <p className="text-slate-600 mb-2">Comece criando sua primeira conta!</p>
-          <p className="text-sm text-slate-500">
-            VÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â¡ atÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â© Ajustes para adicionar contas e comeÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§ar a controlar suas finanÃƒÆ’Ã†â€™Ãƒâ€šÃ‚Â§as.
-          </p>
+          <p className="text-sm text-slate-500">Vá até Ajustes para adicionar contas e começar a controlar suas finanças.</p>
         </div>
       )}
     </div>
