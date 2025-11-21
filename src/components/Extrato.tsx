@@ -31,7 +31,7 @@ export function Extrato() {
 
   const spendingSnapshot = useMemo(() => {
     const monthlyIncome = calculateMonthlyIncome(transactions, categories, currentMonth, currentYear);
-    const { essential, sup?rfluous, investment } = calculateExpensesByLogicTag(
+    const { essential, superfluous, investment } = calculateExpensesByLogicTag(
       transactions,
       categories,
       currentMonth,
@@ -48,7 +48,7 @@ export function Extrato() {
       monthlyIncome,
       monthlyFixed,
       essential,
-      sup?rfluous,
+      superfluous,
       investment,
       investmentGoalValue,
       buffer,
@@ -129,7 +129,7 @@ export function Extrato() {
   const brandFilters = [
     { value: 'expense' as FilterType, label: 'Despesa', icon: ArrowDownRight },
     { value: 'income' as FilterType, label: 'Receita', icon: ArrowUpRight },
-    { value: 'transfer' as FilterType, label: 'TransferÃªncia', icon: ArrowRightLeft },
+    { value: 'transfer' as FilterType, label: 'Transferência', icon: ArrowRightLeft },
   ];
 
   const farolTotals = useMemo(() => {
@@ -143,28 +143,28 @@ export function Extrato() {
       );
     });
 
-    const getTaggedTotal = (tag: 'Essencial' | 'SupÃ©rfluo' | 'Investimento') =>
+    const getTaggedTotal = (tag: 'Essencial' | 'Superfluo' | 'Investimento') =>
       currentMonthTxns
         .filter(txn => {
           const category = categories.find(c => c.id === txn.categoryId);
           const targets =
-            tag === 'SupÃ©rfluo'
-              ? ['SupÃ©rfluo', 'Sup?rfluo', 'Supersup', 'SupÇ¸rfluo']
+            tag === 'Superfluo'
+              ? ['Superfluo', 'Supersup', 'Supérfluo', 'SupǸrfluo']
               : [tag];
           return targets.includes(category?.logicTag ?? '') && category?.type === 'Despesa';
         })
         .reduce((sum, txn) => sum + txn.amount, 0);
 
     const essential = getTaggedTotal('Essencial');
-    const sup?rfluous = getTaggedTotal('SupÃ©rfluo');
+    const superfluous = getTaggedTotal('Superfluo');
     const investment = getTaggedTotal('Investimento');
 
-    return { essential, sup?rfluous, investment };
+    return { essential, superfluous, investment };
   }, [filteredTransactions, categories, currentMonth, currentYear]);
 
-  const totalTrackedExpenses = farolTotals.essential + farolTotals.sup?rfluous + farolTotals.investment;
-  const sup?rfluousShare = totalTrackedExpenses > 0
-    ? (farolTotals.sup?rfluous / totalTrackedExpenses) * 100
+  const totalTrackedExpenses = farolTotals.essential + farolTotals.superfluous + farolTotals.investment;
+  const superfluousShare = totalTrackedExpenses > 0
+    ? (farolTotals.superfluous / totalTrackedExpenses) * 100
     : 0;
   const investmentShare = totalTrackedExpenses > 0
     ? (farolTotals.investment / totalTrackedExpenses) * 100
@@ -184,13 +184,13 @@ export function Extrato() {
       width: totalTrackedExpenses > 0 ? (farolTotals.essential / totalTrackedExpenses) * 100 : 0,
     },
     {
-      id: 'sup?rfluous',
-      label: 'SupÃ©rfluo',
-      value: farolTotals.sup?rfluous,
-      detail: `${sup?rfluousShare.toFixed(0)}%`,
-      textColor: sup?rfluousShare > 30 ? 'text-red-600' : 'text-orange-500',
-      barColor: sup?rfluousShare > 30 ? 'bg-red-500' : 'bg-orange-400',
-      width: totalTrackedExpenses > 0 ? (farolTotals.sup?rfluous / totalTrackedExpenses) * 100 : 0,
+      id: 'superfluous',
+      label: 'Supérfluo',
+      value: farolTotals.superfluous,
+      detail: `${superfluousShare.toFixed(0)}%`,
+      textColor: superfluousShare > 30 ? 'text-red-600' : 'text-orange-500',
+      barColor: superfluousShare > 30 ? 'bg-red-500' : 'bg-orange-400',
+      width: totalTrackedExpenses > 0 ? (farolTotals.superfluous / totalTrackedExpenses) * 100 : 0,
     },
     {
       id: 'investment',
@@ -220,7 +220,7 @@ export function Extrato() {
     }
     if (transaction.cardId) {
       const card = creditCards.find(c => c.id === transaction.cardId);
-      return card?.name || 'CartÃ£o';
+      return card?.name || 'Cartão';
     }
     return '';
   };
@@ -250,14 +250,14 @@ export function Extrato() {
         </div>
         <div className="relative flex items-start justify-between gap-4">
           <div className="space-y-2">
-            <p className="text-xs font-semibold tracking-[0.32em] text-white/60 uppercase">DisponÃ­vel hoje</p>
+            <p className="text-xs font-semibold tracking-[0.32em] text-white/60 uppercase">Disponível hoje</p>
             <p className="text-4xl font-black leading-tight">{formatCurrency(spendingSnapshot.dailyAvailable)}</p>
             <p className="text-sm text-white/70">
-              Renda - contas fixas (que vocÃª marcar) - meta investimento dividido por {daysInMonth} dias.
+              Renda - contas fixas (que você marcar) - meta investimento dividido por {daysInMonth} dias.
             </p>
           </div>
           <div className="bg-white/10 border border-white/10 rounded-2xl px-3 py-2 backdrop-blur text-right text-xs">
-            <p className="text-white/60">Dias do mÃªs</p>
+            <p className="text-white/60">Dias do mês</p>
             <p className="text-lg font-semibold leading-tight">{daysInMonth}</p>
             <p className="mt-2 text-white/60">Bolso livre</p>
             <p className="text-base font-semibold text-emerald-200 leading-tight">
@@ -287,7 +287,7 @@ export function Extrato() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-semibold text-slate-900">Farol de Gastos</p>
-              <p className="text-xs text-slate-500">Essencial x sup?rfluo x investimento (mes atual)</p>
+              <p className="text-xs text-slate-500">Essencial x supérfluo x investimento (mês atual)</p>
             </div>
             <span className="text-[11px] font-semibold text-slate-500">Mobile pronto</span>
           </div>
@@ -317,7 +317,7 @@ export function Extrato() {
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <p className="text-[11px] font-semibold tracking-[0.3em] text-white/50 uppercase">Extrato</p>
-              <h2 className="text-2xl font-semibold">Lan?amentos r?pidos</h2>
+              <h2 className="text-2xl font-semibold">Lançamentos rápidos</h2>
             </div>
             <span className="px-3 py-2 rounded-xl bg-white/10 text-[11px] text-white/70 border border-white/10">
               Pensa menos, registra em 2s
@@ -328,7 +328,7 @@ export function Extrato() {
             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/40" />
             <input
               type="text"
-              placeholder="Buscar transa??es..."
+              placeholder="Buscar transações..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-12 pr-4 py-3 bg-slate-900/40 border border-white/10 rounded-2xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/70"
@@ -398,7 +398,7 @@ export function Extrato() {
       <div className="space-y-6">
         {Object.entries(groupedTransactions).length === 0 ? (
           <div className="bg-slate-900/40 border border-white/10 rounded-3xl p-8 text-center text-white/60">
-            Nenhuma transa??o encontrada
+            Nenhuma transação encontrada
           </div>
         ) : (
           Object.entries(groupedTransactions).map(([monthKey, txns]) => {
@@ -450,7 +450,7 @@ export function Extrato() {
 
                           <div className="flex-1 min-w-0">
                             <p className="font-semibold text-white truncate">
-                              {transaction.description || 'Transacao'}
+                              {transaction.description || 'Transação'}
                               {transaction.totalInstallments && (
                                 <span className="text-xs text-white/50 ml-2">
                                   {transaction.installmentNumber}/{transaction.totalInstallments}
@@ -459,7 +459,7 @@ export function Extrato() {
                             </p>
                             <div className="flex flex-wrap items-center gap-3 text-xs text-white/60 mt-1">
                               <span>{formatDate(transaction.date)}</span>
-                              <span>â€¢ {getTransactionSource(transaction)}</span>
+                              <span>• {getTransactionSource(transaction)}</span>
                               {category && (
                                 <span className="flex items-center gap-2">
                                   <span
