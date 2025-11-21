@@ -32,7 +32,7 @@ function AppShell() {
             <h1 className="text-xl font-bold text-slate-900">
               {currentScreen === 'dashboard' && 'Dashboard'}
               {currentScreen === 'extrato' && 'Extrato'}
-              {currentScreen === 'cards' && 'Cartoes'}
+              {currentScreen === 'cards' && 'Cartões'}
               {currentScreen === 'settings' && 'Ajustes'}
             </h1>
           </div>
@@ -90,7 +90,7 @@ function AppShell() {
               }`}
             >
               <CreditCard className="w-6 h-6" />
-              <span className="text-xs font-medium">Cartoes</span>
+              <span className="text-xs font-medium">Cartões</span>
             </button>
 
             <button

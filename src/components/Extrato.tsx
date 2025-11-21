@@ -143,27 +143,27 @@ export function Extrato() {
       );
     });
 
-    const getTaggedTotal = (tag: 'Essencial' | 'Supersup' | 'Superfluo' | 'Investimento') =>
+    const getTaggedTotal = (tag: 'Essencial' | 'SupÃƒÆ’Ã‚Â©rfluo' | 'Investimento') =>
       currentMonthTxns
         .filter(txn => {
           const category = categories.find(c => c.id === txn.categoryId);
           const targets =
-            tag === 'Superfluo'
-              ? ['Superfluo', 'Supérfluo', 'SupǸrfluo']
+            tag === 'SupÃƒÆ’Ã‚Â©rfluo'
+              ? ['SupÃƒÆ’Ã‚Â©rfluo', 'Superfluo', 'Supersup', 'SupÃƒâ€¡Ã‚Â¸rfluo']
               : [tag];
           return targets.includes(category?.logicTag ?? '') && category?.type === 'Despesa';
         })
         .reduce((sum, txn) => sum + txn.amount, 0);
 
     const essential = getTaggedTotal('Essencial');
-    // preserve incoming data spelling while allowing both strings
-    const superfluous = getTaggedTotal('Superfluo') + getTaggedTotal('Supersup');
+    const superfluous = getTaggedTotal('SupÃƒÆ’Ã‚Â©rfluo');
     const investment = getTaggedTotal('Investimento');
 
     return { essential, superfluous, investment };
   }, [filteredTransactions, categories, currentMonth, currentYear]);
 
   const totalTrackedExpenses = farolTotals.essential + farolTotals.superfluous + farolTotals.investment;
+const totalTrackedExpenses = farolTotals.essential + farolTotals.superfluous + farolTotals.investment;
   const superfluousShare = totalTrackedExpenses > 0
     ? (farolTotals.superfluous / totalTrackedExpenses) * 100
     : 0;
@@ -186,7 +186,7 @@ export function Extrato() {
     },
     {
       id: 'superfluous',
-      label: 'Superfluo',
+      label: 'SupÃƒÆ’Ã‚Â©rfluo',
       value: farolTotals.superfluous,
       detail: `${superfluousShare.toFixed(0)}%`,
       textColor: superfluousShare > 30 ? 'text-red-600' : 'text-orange-500',
@@ -221,7 +221,7 @@ export function Extrato() {
     }
     if (transaction.cardId) {
       const card = creditCards.find(c => c.id === transaction.cardId);
-      return card?.name || 'Cartão';
+      return card?.name || 'CartÃƒÆ’Ã‚Â£o';
     }
     return '';
   };
@@ -251,14 +251,14 @@ export function Extrato() {
         </div>
         <div className="relative flex items-start justify-between gap-4">
           <div className="space-y-2">
-            <p className="text-xs font-semibold tracking-[0.32em] text-white/60 uppercase">Disponivel hoje</p>
+            <p className="text-xs font-semibold tracking-[0.32em] text-white/60 uppercase">Dispon\u00edvel hoje</p>
             <p className="text-4xl font-black leading-tight">{formatCurrency(spendingSnapshot.dailyAvailable)}</p>
             <p className="text-sm text-white/70">
-              Renda - contas fixas (que você marcar) - meta investimento dividido por {daysInMonth} dias.
+              Renda - contas fixas (que voc\u00ea marcar) - meta investimento dividido por {daysInMonth} dias.
             </p>
           </div>
           <div className="bg-white/10 border border-white/10 rounded-2xl px-3 py-2 backdrop-blur text-right text-xs">
-            <p className="text-white/60">Dias do mes</p>
+            <p className="text-white/60">Dias do m\u00eas</p>
             <p className="text-lg font-semibold leading-tight">{daysInMonth}</p>
             <p className="mt-2 text-white/60">Bolso livre</p>
             <p className="text-base font-semibold text-emerald-200 leading-tight">
@@ -288,7 +288,7 @@ export function Extrato() {
           <div className="flex items-center justify-between">
             <div>
               <p className="text-sm font-semibold text-slate-900">Farol de Gastos</p>
-              <p className="text-xs text-slate-500">Essencial x superfluo x investimento (mes atual)</p>
+              <p className="text-xs text-slate-500">Essencial x supÃƒÆ’Ã‚Â©rfluo x investimento (mÃƒÆ’Ã‚Âªs atual)</p>
             </div>
             <span className="text-[11px] font-semibold text-slate-500">Mobile pronto</span>
           </div>
@@ -318,7 +318,7 @@ export function Extrato() {
           <div className="flex items-center justify-between">
             <div className="space-y-1">
               <p className="text-[11px] font-semibold tracking-[0.3em] text-white/50 uppercase">Extrato</p>
-              <h2 className="text-2xl font-semibold">Lancamentos rapidos</h2>
+              <h2 className="text-2xl font-semibold">Lan\u00e7amentos r\u00e1pidos</h2>
             </div>
             <span className="px-3 py-2 rounded-xl bg-white/10 text-[11px] text-white/70 border border-white/10">
               Pensa menos, registra em 2s
@@ -329,7 +329,7 @@ export function Extrato() {
             <Search className="absolute left-4 top-1/2 transform -translate-y-1/2 w-5 h-5 text-white/40" />
             <input
               type="text"
-              placeholder="Buscar transacoes..."
+              placeholder="Buscar transa\u00e7\u00f5es..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="w-full pl-12 pr-4 py-3 bg-slate-900/40 border border-white/10 rounded-2xl text-white placeholder-white/40 focus:outline-none focus:ring-2 focus:ring-blue-500/70"
@@ -399,7 +399,7 @@ export function Extrato() {
       <div className="space-y-6">
         {Object.entries(groupedTransactions).length === 0 ? (
           <div className="bg-slate-900/40 border border-white/10 rounded-3xl p-8 text-center text-white/60">
-            Nenhuma transacao encontrada
+            Nenhuma transaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o encontrada
           </div>
         ) : (
           Object.entries(groupedTransactions).map(([monthKey, txns]) => {
@@ -451,7 +451,7 @@ export function Extrato() {
 
                           <div className="flex-1 min-w-0">
                             <p className="font-semibold text-white truncate">
-                              {transaction.description || 'Transacao'}
+                              {transaction.description || 'TransaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o'}
                               {transaction.totalInstallments && (
                                 <span className="text-xs text-white/50 ml-2">
                                   {transaction.installmentNumber}/{transaction.totalInstallments}
@@ -460,7 +460,7 @@ export function Extrato() {
                             </p>
                             <div className="flex flex-wrap items-center gap-3 text-xs text-white/60 mt-1">
                               <span>{formatDate(transaction.date)}</span>
-                              <span>• {getTransactionSource(transaction)}</span>
+                              <span>ÃƒÂ¢Ã¢â€šÂ¬Ã‚Â¢ {getTransactionSource(transaction)}</span>
                               {category && (
                                 <span className="flex items-center gap-2">
                                   <span

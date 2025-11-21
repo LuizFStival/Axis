@@ -174,7 +174,7 @@ type NetWorthPoint = {
     icon: creditCardStyle.icon,
     colorClass: creditCardStyle.colorClass,
     badgeClass: creditCardStyle.badgeClass,
-    subtitle: 'Cartão de Crédito',
+    subtitle: 'CartÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o de CrÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â©dito',
   }));
 
   const combinedTiles = [...accountTiles, ...cardTiles];
@@ -192,7 +192,7 @@ type NetWorthPoint = {
     },
     {
       id: 'superfluous',
-      label: 'Supérfluo',
+      label: 'SupÃƒÂ©rfluo',
       value: stats.superfluous,
       detail: `${stats.superfluousPercentage.toFixed(0)}%`,
       textColor: isSuperfluousHigh ? 'text-red-600' : 'text-orange-500',
@@ -216,13 +216,13 @@ type NetWorthPoint = {
         <div className="flex items-center justify-between mb-4">
           <div>
             <p className="text-sm font-semibold text-slate-900">Patrimonio Liquido</p>
-            <p className="text-xs text-slate-500">Ativos vs passivos acumulados por mes</p>
+            <p className="text-xs text-slate-500">Ativos vs passivos acumulados por m?s</p>
           </div>
           <span className="text-[11px] font-semibold text-slate-500">Linha motivadora</span>
         </div>
 
         {netWorthSeries.length === 0 ? (
-          <p className="text-sm text-slate-500">Adicione transacoes pagas para ver a evolucao.</p>
+          <p className="text-sm text-slate-500">Adicione transaÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Âµes pagas para ver a evoluÃƒÆ’Ã‚Â§ÃƒÆ’Ã‚Â£o.</p>
         ) : (
           <NetWorthChart data={netWorthSeries} />
         )}
@@ -231,16 +231,16 @@ type NetWorthPoint = {
       <div className="bg-[#0f1d35] text-white rounded-[28px] p-6 shadow-2xl space-y-6">
         <div className="flex items-start justify-between gap-4">
           <div>
-            <h3 className="text-sm font-medium text-white/70">Disponivel para gastar hoje</h3>
+            <h3 className="text-sm font-medium text-white/70">Dispon\u00edvel para gastar hoje</h3>
             <p className="text-4xl font-bold mt-2">{formatCurrency(availableToday)}</p>
             <p className="text-xs text-white/60 mt-1">
-              Renda - contas fixas (marcadas por voc?) - meta investimento ({investmentGoal}%) / {daysInMonth} dias.
+              Renda - contas fixas (marcadas por voc\u00ea) - meta investimento ({investmentGoal}%) / {daysInMonth} dias.
             </p>
           </div>
           <div className="bg-white/10 border border-white/10 rounded-2xl px-3 py-2 text-right">
             <p className="text-[11px] text-white/60 uppercase tracking-wide">Bolso livre</p>
             <p className="text-lg font-semibold leading-tight">{formatCurrency(availableBuffer)}</p>
-            <p className="text-[11px] text-white/50 mt-1">no mes</p>
+            <p className="text-[11px] text-white/50 mt-1">no m\u00eas</p>
           </div>
         </div>
 
@@ -282,12 +282,12 @@ type NetWorthPoint = {
           </div>
           <div>
             <p className="text-sm font-semibold text-slate-900">Meta de Investimento</p>
-            <p className="text-xs text-slate-500">Investido este mês</p>
+            <p className="text-xs text-slate-500">Investido este mÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âªs</p>
           </div>
         </div>
 
         <div className="flex justify-between text-sm text-slate-600 mb-2">
-          <span>Investido este mês</span>
+          <span>Investido este mÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Âªs</span>
           <span className="font-semibold">
             {stats.investmentPercentage.toFixed(1)}% de {investmentGoal}%
           </span>
@@ -310,7 +310,7 @@ type NetWorthPoint = {
           </div>
           <div>
             <p className="text-sm font-semibold text-slate-900">Farol de Gastos</p>
-            <p className="text-xs text-slate-500">Veja como seus gastos estão distribuídos</p>
+            <p className="text-xs text-slate-500">Veja como seus gastos estÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â£o distribuÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â­dos</p>
           </div>
         </div>
 
@@ -369,7 +369,7 @@ type NetWorthPoint = {
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 text-center">
           <p className="text-slate-600 mb-2">Comece criando sua primeira conta!</p>
           <p className="text-sm text-slate-500">
-            Vá até Ajustes para adicionar contas e começar a controlar suas finanças.
+            VÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â¡ atÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â© Ajustes para adicionar contas e comeÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§ar a controlar suas finanÃƒÆ’Ã†â€™Ãƒâ€ Ã¢â‚¬â„¢ÃƒÆ’Ã¢â‚¬Å¡Ãƒâ€šÃ‚Â§as.
           </p>
         </div>
       )}
