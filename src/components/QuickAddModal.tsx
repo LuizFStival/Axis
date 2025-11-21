@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { X } from 'lucide-react';
 import { useFinanceData } from '../hooks/useFinanceData';
 import { TransactionType } from '../types';
+import { formatCurrencyField, parseCurrencyInput } from '../utils/calculations';
 
 interface QuickAddModalProps {
   isOpen: boolean;
@@ -29,6 +30,7 @@ export function QuickAddModal({ isOpen, onClose }: QuickAddModalProps) {
   const [transferToAccountId, setTransferToAccountId] = useState('');
   const [hasInstallments, setHasInstallments] = useState(false);
   const [installments, setInstallments] = useState('1');
+  const [isFixedExpense, setIsFixedExpense] = useState(false);
 
   useEffect(() => {
     if (isOpen) {
@@ -44,6 +46,7 @@ export function QuickAddModal({ isOpen, onClose }: QuickAddModalProps) {
       setTransferToAccountId('');
       setHasInstallments(false);
       setInstallments('1');
+      setIsFixedExpense(false);
     }
   }, [isOpen, accounts, creditCards]);
 
@@ -61,18 +64,18 @@ export function QuickAddModal({ isOpen, onClose }: QuickAddModalProps) {
     }
   }, [type, categories, categoryId]);
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    const amountValue = parseFloat(amount);
-    if (isNaN(amountValue) || amountValue <= 0) return;
+    const amountValue = parseCurrencyInput(amount);
+    if (amountValue <= 0) return;
 
-    if (type === 'Transferência') {
+    if (type === 'Transfer?ncia') {
       if (!accountId || !transferToAccountId) return;
 
-      addTransaction({
+      await addTransaction({
         amount: amountValue,
-        description: description || 'Transferência',
+        description: description || 'Transfer?ncia',
         date,
         status: 'pago',
         accountId,
@@ -89,14 +92,14 @@ export function QuickAddModal({ isOpen, onClose }: QuickAddModalProps) {
         accountId: paymentMethod === 'account' ? accountId : undefined,
         cardId: paymentMethod === 'card' ? cardId : undefined,
         categoryId: categoryId || undefined,
-        isRecurring: false,
+        isRecurring: isFixedExpense,
         isTransfer: false,
       };
 
       if (hasInstallments && parseInt(installments) > 1) {
-        addInstallmentTransaction(transactionData, parseInt(installments));
+        await addInstallmentTransaction(transactionData, parseInt(installments));
       } else {
-        addTransaction(transactionData);
+        await addTransaction(transactionData);
       }
     }
 
@@ -163,21 +166,20 @@ export function QuickAddModal({ isOpen, onClose }: QuickAddModalProps) {
             <label className="block text-sm font-medium text-slate-700 mb-2">
               Valor
             </label>
-            <div className="relative">
-              <span className="absolute left-4 top-1/2 transform -translate-y-1/2 text-slate-500 text-lg">
-                R$
-              </span>
-              <input
-                type="number"
-                step="0.01"
-                value={amount}
-                onChange={(e) => setAmount(e.target.value)}
-                placeholder="0,00"
-                className="w-full pl-12 pr-4 py-4 text-2xl font-bold bg-slate-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
-                required
-                autoFocus
-              />
-            </div>
+            <input
+              type="text"
+              inputMode="decimal"
+              value={amount}
+              onChange={(e) => setAmount(e.target.value)}
+              onBlur={(e) =>
+                setAmount(e.currentTarget.value ? formatCurrencyField(e.currentTarget.value) : '')
+              }
+              onFocus={(e) => e.currentTarget.select()}
+              placeholder="R$ 0,00"
+              className="w-full px-4 py-4 text-2xl font-bold bg-slate-50 border-0 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              required
+              autoFocus
+            />
           </div>
 
           <div>
@@ -343,6 +345,16 @@ export function QuickAddModal({ isOpen, onClose }: QuickAddModalProps) {
                   </button>
                 </div>
               </div>
+
+              <label className="flex items-center gap-2 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={isFixedExpense}
+                  onChange={(e) => setIsFixedExpense(e.target.checked)}
+                  className="w-4 h-4 rounded border-slate-300 text-blue-600 focus:ring-blue-500"
+                />
+                <span className="text-sm font-medium text-slate-700">Marcar como conta fixa</span>
+              </label>
             </>
           )}
 

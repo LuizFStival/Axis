@@ -1,25 +1,41 @@
 import { useMemo } from 'react';
-import { TrendingUp, TrendingDown, Target, AlertCircle } from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
+import {
+  TrendingUp,
+  Target,
+  AlertCircle,
+  Wallet,
+  PiggyBank,
+  Briefcase,
+  CreditCard,
+  Info,
+} from 'lucide-react';
 import { useFinanceData } from '../hooks/useFinanceData';
 import {
   calculateTotalBalance,
   calculateMonthlyIncome,
   calculateMonthlyExpenses,
   calculateExpensesByLogicTag,
+  calculateMonthlyFixedExpenses,
   formatCurrency,
 } from '../utils/calculations';
 
 export function Dashboard() {
-  const { accounts, transactions, categories } = useFinanceData();
+  const { accounts, creditCards, transactions, categories } = useFinanceData();
 
   const now = new Date();
   const currentMonth = now.getMonth();
   const currentYear = now.getFullYear();
+  const daysInMonth = useMemo(
+    () => new Date(currentYear, currentMonth + 1, 0).getDate(),
+    [currentMonth, currentYear]
+  );
 
   const stats = useMemo(() => {
     const totalBalance = calculateTotalBalance(accounts);
     const monthlyIncome = calculateMonthlyIncome(transactions, categories, currentMonth, currentYear);
     const monthlyExpenses = calculateMonthlyExpenses(transactions, categories, currentMonth, currentYear);
+    const monthlyFixed = calculateMonthlyFixedExpenses(transactions, currentMonth, currentYear);
     const { essential, superfluous, investment } = calculateExpensesByLogicTag(
       transactions,
       categories,
@@ -35,6 +51,7 @@ export function Dashboard() {
       totalBalance,
       monthlyIncome,
       monthlyExpenses,
+      monthlyFixed,
       essential,
       superfluous,
       investment,
@@ -43,135 +60,310 @@ export function Dashboard() {
     };
   }, [accounts, transactions, categories, currentMonth, currentYear]);
 
+  const cardSummaries = useMemo(() => {
+    return creditCards.map(card => {
+      const currentInvoice = transactions
+        .filter(txn => txn.cardId === card.id && !txn.isTransfer)
+        .reduce((sum, txn) => sum + txn.amount, 0);
+      return {
+        id: card.id,
+        name: card.name,
+        currentInvoice,
+      };
+    });
+  }, [creditCards, transactions]);
+
   const isSuperfluousHigh = stats.superfluousPercentage > 30;
   const investmentGoal = 20;
+  const investmentGoalValue = Math.max(stats.monthlyIncome * (investmentGoal / 100), 0);
+  const investmentProgress = Math.min(Math.max(stats.investmentPercentage, 0), 100);
+  const safeDays = Math.max(daysInMonth, 1);
+  const availableBuffer = stats.monthlyIncome - stats.monthlyFixed - investmentGoalValue;
+  const availableToday = Math.max(availableBuffer / safeDays, 0);
+  const investmentShare = stats.monthlyExpenses > 0 ? (stats.investment / stats.monthlyExpenses) * 100 : 0;
+  const essentialShare = stats.monthlyExpenses > 0 ? (stats.essential / stats.monthlyExpenses) * 100 : 0;
+
+  const netWorthSeries = useMemo(() => {
+    const paid = transactions.filter(txn => txn.status === 'pago' && !txn.isTransfer);
+    const monthly: Record<string, { income: number; expense: number; year: number; month: number }> = {};
+
+    paid.forEach(txn => {
+      const date = new Date(txn.date);
+      const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}`;
+      if (!monthly[key]) {
+        monthly[key] = { income: 0, expense: 0, year: date.getFullYear(), month: date.getMonth() };
+      }
+      const category = categories.find(c => c.id === txn.categoryId);
+      if (category?.type === 'Receita') {
+        monthly[key].income += txn.amount;
+      } else if (category?.type === 'Despesa') {
+        monthly[key].expense += txn.amount;
+      }
+    });
+
+    const sortedKeys = Object.keys(monthly).sort();
+    let runningIncome = 0;
+    let runningExpense = 0;
+
+    return sortedKeys.map(key => {
+      const bucket = monthly[key];
+      runningIncome += bucket.income;
+      runningExpense += bucket.expense;
+      const netWorth = runningIncome - runningExpense;
+
+      return {
+        key,
+        label: new Date(bucket.year, bucket.month, 1).toLocaleDateString('pt-BR', { month: 'short' }),
+        assets: runningIncome,
+        liabilities: runningExpense,
+        netWorth,
+      };
+    });
+  }, [transactions, categories]);
+
+  const accountTypeStyles: Record<
+    'Corrente' | 'Investimento' | 'Dinheiro' | 'default',
+    { icon: LucideIcon; colorClass: string; badgeClass: string }
+  > = {
+    Corrente: { icon: Wallet, colorClass: 'text-purple-200', badgeClass: 'bg-purple-500/20' },
+    Investimento: { icon: TrendingUp, colorClass: 'text-emerald-200', badgeClass: 'bg-emerald-500/20' },
+    Dinheiro: { icon: PiggyBank, colorClass: 'text-amber-200', badgeClass: 'bg-amber-500/20' },
+    default: { icon: Briefcase, colorClass: 'text-slate-200', badgeClass: 'bg-slate-500/20' },
+  };
+
+type FinanceTile = {
+  id: string;
+  name: string;
+  value: number;
+  icon: LucideIcon;
+  colorClass: string;
+  badgeClass: string;
+  subtitle?: string;
+};
+
+type NetWorthPoint = {
+  key: string;
+  label: string;
+  assets: number;
+  liabilities: number;
+  netWorth: number;
+};
+
+  const accountTiles: FinanceTile[] = accounts.map(account => {
+    const style = accountTypeStyles[account.type] ?? accountTypeStyles.default;
+    return {
+      id: account.id,
+      name: account.name,
+      value: account.currentBalance,
+      icon: style.icon,
+      colorClass: style.colorClass,
+      badgeClass: style.badgeClass,
+    };
+  });
+
+  const creditCardStyle = {
+    icon: CreditCard,
+    colorClass: 'text-blue-200',
+    badgeClass: 'bg-blue-500/20',
+  };
+
+  const cardTiles: FinanceTile[] = cardSummaries.map(card => ({
+    id: `card-${card.id}`,
+    name: card.name,
+    value: card.currentInvoice,
+    icon: creditCardStyle.icon,
+    colorClass: creditCardStyle.colorClass,
+    badgeClass: creditCardStyle.badgeClass,
+    subtitle: 'Cartão de Crédito',
+  }));
+
+  const combinedTiles = [...accountTiles, ...cardTiles];
+  const showAccountsSection = combinedTiles.length > 0;
+
+  const farolRows = [
+    {
+      id: 'essential',
+      label: 'Essencial',
+      value: stats.essential,
+      detail: `${essentialShare.toFixed(0)}%`,
+      textColor: 'text-emerald-600',
+      barColor: 'bg-emerald-500',
+      width: stats.monthlyExpenses > 0 ? (stats.essential / stats.monthlyExpenses) * 100 : 0,
+    },
+    {
+      id: 'superfluous',
+      label: 'Supérfluo',
+      value: stats.superfluous,
+      detail: `${stats.superfluousPercentage.toFixed(0)}%`,
+      textColor: isSuperfluousHigh ? 'text-red-600' : 'text-orange-500',
+      barColor: isSuperfluousHigh ? 'bg-red-500' : 'bg-orange-400',
+      width: stats.monthlyExpenses > 0 ? (stats.superfluous / stats.monthlyExpenses) * 100 : 0,
+    },
+    {
+      id: 'investment',
+      label: 'Investimento',
+      value: stats.investment,
+      detail: `${investmentShare.toFixed(0)}%`,
+      textColor: 'text-blue-600',
+      barColor: 'bg-blue-500',
+      width: stats.monthlyExpenses > 0 ? (stats.investment / stats.monthlyExpenses) * 100 : 0,
+    },
+  ];
 
   return (
     <div className="space-y-6">
-      <div className="bg-gradient-to-br from-slate-900 to-slate-800 rounded-2xl p-6 text-white shadow-xl">
-        <h3 className="text-sm font-medium text-slate-400 mb-2">Saldo Total</h3>
-        <p className="text-4xl font-bold mb-4">{formatCurrency(stats.totalBalance)}</p>
+      <div className="bg-white rounded-[28px] p-6 shadow-lg border border-slate-100">
+        <div className="flex items-center justify-between mb-4">
+          <div>
+            <p className="text-sm font-semibold text-slate-900">Patrimonio Liquido</p>
+            <p className="text-xs text-slate-500">Ativos vs passivos acumulados por mes</p>
+          </div>
+          <span className="text-[11px] font-semibold text-slate-500">Linha motivadora</span>
+        </div>
 
-        <div className="grid grid-cols-2 gap-4 mt-4">
-          <div className="bg-slate-800/50 rounded-lg p-3">
-            <div className="flex items-center gap-2 mb-1">
-              <TrendingUp className="w-4 h-4 text-green-400" />
-              <span className="text-xs text-slate-400">Receitas</span>
+        {netWorthSeries.length === 0 ? (
+          <p className="text-sm text-slate-500">Adicione transacoes pagas para ver a evolucao.</p>
+        ) : (
+          <NetWorthChart data={netWorthSeries} />
+        )}
+      </div>
+
+      <div className="bg-[#0f1d35] text-white rounded-[28px] p-6 shadow-2xl space-y-6">
+        <div className="flex items-start justify-between gap-4">
+          <div>
+            <h3 className="text-sm font-medium text-white/70">Disponivel para gastar hoje</h3>
+            <p className="text-4xl font-bold mt-2">{formatCurrency(availableToday)}</p>
+            <p className="text-xs text-white/60 mt-1">
+              Renda - contas fixas (marcadas por voc?) - meta investimento ({investmentGoal}%) / {daysInMonth} dias.
+            </p>
+          </div>
+          <div className="bg-white/10 border border-white/10 rounded-2xl px-3 py-2 text-right">
+            <p className="text-[11px] text-white/60 uppercase tracking-wide">Bolso livre</p>
+            <p className="text-lg font-semibold leading-tight">{formatCurrency(availableBuffer)}</p>
+            <p className="text-[11px] text-white/50 mt-1">no mes</p>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
+            <div className="flex items-center gap-2 text-sm text-emerald-200 mb-1">
+              <TrendingUp className="w-4 h-4" />
+              <span>Renda</span>
             </div>
-            <p className="text-lg font-semibold text-green-400">
-              {formatCurrency(stats.monthlyIncome)}
+            <p className="text-xl font-semibold">{formatCurrency(stats.monthlyIncome)}</p>
+          </div>
+
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
+            <div className="flex items-center gap-2 text-sm text-amber-200 mb-1">
+              <AlertCircle className="w-4 h-4" />
+              <span>Contas fixas</span>
+            </div>
+            <p className="text-xl font-semibold text-amber-200">
+              {formatCurrency(stats.monthlyFixed)}
             </p>
           </div>
 
-          <div className="bg-slate-800/50 rounded-lg p-3">
-            <div className="flex items-center gap-2 mb-1">
-              <TrendingDown className="w-4 h-4 text-red-400" />
-              <span className="text-xs text-slate-400">Despesas</span>
+          <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
+            <div className="flex items-center gap-2 text-sm text-blue-200 mb-1">
+              <Target className="w-4 h-4" />
+              <span>Meta invest. ({investmentGoal}%)</span>
             </div>
-            <p className="text-lg font-semibold text-red-400">
-              {formatCurrency(stats.monthlyExpenses)}
+            <p className="text-xl font-semibold text-blue-200">
+              {formatCurrency(investmentGoalValue)}
             </p>
           </div>
         </div>
       </div>
 
-      <div className="bg-white rounded-2xl p-6 shadow-lg">
-        <div className="flex items-center gap-2 mb-4">
-          <Target className="w-5 h-5 text-green-600" />
-          <h3 className="text-lg font-semibold text-slate-900">Meta de Investimento</h3>
+      <div className="bg-white rounded-[28px] p-6 shadow-lg border border-slate-100">
+        <div className="flex items-center gap-3 mb-4">
+          <div className="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center">
+            <Target className="w-6 h-6" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-slate-900">Meta de Investimento</p>
+            <p className="text-xs text-slate-500">Investido este mês</p>
+          </div>
         </div>
 
-        <div className="space-y-2">
-          <div className="flex justify-between text-sm">
-            <span className="text-slate-600">Investido este mês</span>
-            <span className="font-semibold text-slate-900">
-              {stats.investmentPercentage.toFixed(1)}% de {investmentGoal}%
-            </span>
-          </div>
-
-          <div className="w-full bg-slate-200 rounded-full h-3 overflow-hidden">
-            <div
-              className={`h-full rounded-full transition-all duration-500 ${
-                stats.investmentPercentage >= investmentGoal
-                  ? 'bg-green-500'
-                  : 'bg-blue-500'
-              }`}
-              style={{ width: `${Math.min(stats.investmentPercentage, 100)}%` }}
-            />
-          </div>
-
-          <p className="text-xs text-slate-500 mt-2">
-            {formatCurrency(stats.investment)} de {formatCurrency(stats.monthlyIncome * 0.2)}
-          </p>
+        <div className="flex justify-between text-sm text-slate-600 mb-2">
+          <span>Investido este mês</span>
+          <span className="font-semibold">
+            {stats.investmentPercentage.toFixed(1)}% de {investmentGoal}%
+          </span>
         </div>
+        <div className="h-2 w-full bg-slate-200 rounded-full overflow-hidden">
+          <div
+            className="h-full bg-emerald-500 rounded-full transition-all duration-500"
+            style={{ width: `${investmentProgress}%` }}
+          />
+        </div>
+        <p className="text-xs text-slate-500 mt-3">
+          {formatCurrency(stats.investment)} de {formatCurrency(investmentGoalValue)}
+        </p>
       </div>
 
-      <div className="bg-white rounded-2xl p-6 shadow-lg">
-        <div className="flex items-center gap-2 mb-4">
-          <AlertCircle className={`w-5 h-5 ${isSuperfluousHigh ? 'text-red-600' : 'text-blue-600'}`} />
-          <h3 className="text-lg font-semibold text-slate-900">Farol de Gastos</h3>
+      <div className="bg-white rounded-[28px] p-6 shadow-lg border border-slate-100 space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-full bg-blue-100 text-blue-600 flex items-center justify-center">
+            <Info className="w-5 h-5" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-slate-900">Farol de Gastos</p>
+            <p className="text-xs text-slate-500">Veja como seus gastos estão distribuídos</p>
+          </div>
         </div>
 
         <div className="space-y-4">
-          <div>
-            <div className="flex justify-between text-sm mb-2">
-              <span className="text-slate-600">Essencial</span>
-              <span className="font-semibold text-green-700">
-                {formatCurrency(stats.essential)}
-              </span>
+          {farolRows.map(row => (
+            <div key={row.id} className="space-y-1">
+              <div className="flex justify-between text-sm">
+                <span className="text-slate-600">{row.label}</span>
+                <span className={`font-semibold ${row.textColor}`}>
+                  {formatCurrency(row.value)}
+                  {row.detail ? ` (${row.detail})` : ''}
+                </span>
+              </div>
+              <div className="h-2 w-full bg-slate-200 rounded-full overflow-hidden">
+                <div
+                  className={`h-full rounded-full ${row.barColor}`}
+                  style={{ width: `${Math.min(row.width, 100)}%` }}
+                />
+              </div>
             </div>
-            <div className="w-full bg-slate-200 rounded-full h-2">
-              <div
-                className="bg-green-500 h-full rounded-full transition-all duration-500"
-                style={{
-                  width: `${stats.monthlyExpenses > 0 ? (stats.essential / stats.monthlyExpenses) * 100 : 0}%`,
-                }}
-              />
-            </div>
-          </div>
-
-          <div>
-            <div className="flex justify-between text-sm mb-2">
-              <span className="text-slate-600">Supérfluo</span>
-              <span className={`font-semibold ${isSuperfluousHigh ? 'text-red-600' : 'text-orange-600'}`}>
-                {formatCurrency(stats.superfluous)} ({stats.superfluousPercentage.toFixed(0)}%)
-              </span>
-            </div>
-            <div className="w-full bg-slate-200 rounded-full h-2">
-              <div
-                className={`h-full rounded-full transition-all duration-500 ${
-                  isSuperfluousHigh ? 'bg-red-500' : 'bg-orange-500'
-                }`}
-                style={{
-                  width: `${stats.monthlyExpenses > 0 ? (stats.superfluous / stats.monthlyExpenses) * 100 : 0}%`,
-                }}
-              />
-            </div>
-            {isSuperfluousHigh && (
-              <p className="text-xs text-red-600 mt-1">
-                ⚠️ Gastos supérfluos acima de 30%
-              </p>
-            )}
-          </div>
-
-          <div>
-            <div className="flex justify-between text-sm mb-2">
-              <span className="text-slate-600">Investimento</span>
-              <span className="font-semibold text-blue-600">
-                {formatCurrency(stats.investment)}
-              </span>
-            </div>
-            <div className="w-full bg-slate-200 rounded-full h-2">
-              <div
-                className="bg-blue-500 h-full rounded-full transition-all duration-500"
-                style={{
-                  width: `${stats.monthlyExpenses > 0 ? (stats.investment / stats.monthlyExpenses) * 100 : 0}%`,
-                }}
-              />
-            </div>
-          </div>
+          ))}
         </div>
       </div>
+
+      {showAccountsSection && (
+        <div className="bg-slate-950 text-white rounded-2xl p-6 shadow-xl space-y-4">
+          <h3 className="text-lg font-semibold">Contas</h3>
+          <div className="space-y-3">
+            {combinedTiles.map(item => {
+              const Icon = item.icon;
+              return (
+                <div
+                  key={item.id}
+                  className="bg-slate-900 rounded-2xl p-4 flex items-center justify-between border border-slate-800/60"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className={`p-3 rounded-xl ${item.badgeClass}`}>
+                      <Icon className={`w-5 h-5 ${item.colorClass}`} />
+                    </div>
+                    <div>
+                      <p className="text-sm text-slate-300">{item.name}</p>
+                      {item.subtitle && (
+                        <p className="text-xs text-slate-500">{item.subtitle}</p>
+                      )}
+                      <p className="text-xl font-semibold">{formatCurrency(item.value)}</p>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
 
       {accounts.length === 0 && (
         <div className="bg-blue-50 border border-blue-200 rounded-xl p-6 text-center">
@@ -181,6 +373,100 @@ export function Dashboard() {
           </p>
         </div>
       )}
+    </div>
+  );
+}
+
+function NetWorthChart({ data }: { data: NetWorthPoint[] }) {
+  const maxValue = Math.max(
+    ...data.map(point => Math.max(point.assets, point.liabilities, point.netWorth, 0)),
+    1
+  );
+  const chartHeight = 100;
+  const viewBoxHeight = chartHeight + 18;
+  const width = 100;
+  const xStep = data.length > 1 ? width / (data.length - 1) : 0;
+  const coords = data.map((point, index) => {
+    const x = data.length > 1 ? index * xStep : width / 2;
+    const y = chartHeight - (point.netWorth / maxValue) * chartHeight;
+    return { x, y };
+  });
+  const linePoints = coords.map(({ x, y }) => `${x},${y}`).join(' ');
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-center gap-3 text-xs text-slate-500">
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-emerald-500" /> Ativos acumulado</span>
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-full bg-rose-400" /> Passivos acumulado</span>
+        <span className="flex items-center gap-1"><span className="w-3 h-3 rounded-sm bg-indigo-500" /> PL</span>
+      </div>
+      <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4">
+        <svg viewBox={`0 0 ${width} ${viewBoxHeight}`} className="w-full h-40" preserveAspectRatio="none">
+          {data.map((point, index) => {
+            const barWidth = xStep ? xStep * 0.35 : width * 0.1;
+            const x = data.length > 1 ? index * xStep : width / 2;
+            const assetsHeight = (point.assets / maxValue) * chartHeight;
+            const liabilitiesHeight = (point.liabilities / maxValue) * chartHeight;
+            return (
+              <g key={point.key}>
+                <rect
+                  x={x - barWidth}
+                  y={chartHeight - assetsHeight}
+                  width={barWidth}
+                  height={assetsHeight}
+                  rx={1.5}
+                  fill="#10b981"
+                  opacity={0.2}
+                />
+                <rect
+                  x={x + 2}
+                  y={chartHeight - liabilitiesHeight}
+                  width={barWidth}
+                  height={liabilitiesHeight}
+                  rx={1.5}
+                  fill="#fb7185"
+                  opacity={0.25}
+                />
+                <text
+                  x={x}
+                  y={chartHeight + 10}
+                  textAnchor="middle"
+                  className="fill-slate-500 text-[8px]"
+                >
+                  {point.label}
+                </text>
+              </g>
+            );
+          })}
+          <polyline
+            points={linePoints}
+            fill="none"
+            stroke="#6366f1"
+            strokeWidth={2.5}
+            strokeLinejoin="round"
+            strokeLinecap="round"
+          />
+          {coords.map(({ x, y }, index) => {
+            return (
+              <circle key={data[index].key} cx={x} cy={y} r={2.8} fill="#4338ca" stroke="white" strokeWidth={0.8} />
+            );
+          })}
+        </svg>
+      </div>
+      <div className="grid grid-cols-3 gap-2 text-xs text-slate-600">
+        <div className="bg-emerald-50 border border-emerald-100 rounded-lg p-2">
+          <p className="font-semibold text-emerald-700">Ativos</p>
+          <p className="text-slate-700">{formatCurrency(data[data.length - 1].assets)}</p>
+        </div>
+        <div className="bg-rose-50 border border-rose-100 rounded-lg p-2">
+          <p className="font-semibold text-rose-700">Passivos</p>
+          <p className="text-slate-700">{formatCurrency(data[data.length - 1].liabilities)}</p>
+        </div>
+        <div className="bg-indigo-50 border border-indigo-100 rounded-lg p-2">
+          <p className="font-semibold text-indigo-700">PL</p>
+          <p className="text-slate-700">{formatCurrency(data[data.length - 1].netWorth)}</p>
+        </div>
+      </div>
     </div>
   );
 }

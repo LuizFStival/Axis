@@ -1,27 +1,38 @@
 import { useState } from 'react';
 import { LayoutDashboard, Receipt, Plus, CreditCard, Settings as SettingsIcon } from 'lucide-react';
-import { AuthProvider } from './contexts/AuthContext';
+import { AuthProvider, useAuth } from './contexts/AuthContext';
 import { Dashboard } from './components/Dashboard';
 import { Extrato } from './components/Extrato';
 import { CreditCards } from './components/CreditCards';
 import { Settings } from './components/Settings';
 import { QuickAddModal } from './components/QuickAddModal';
+import { FinanceDataProvider } from './hooks/useFinanceData';
+import { AuthScreen } from './components/AuthScreen';
 
 type Screen = 'dashboard' | 'extrato' | 'cards' | 'settings';
 
-function App() {
+function AppShell() {
+  const { isAuthenticated } = useAuth();
   const [currentScreen, setCurrentScreen] = useState<Screen>('dashboard');
   const [showAddModal, setShowAddModal] = useState(false);
 
+  if (!isAuthenticated) {
+    return <AuthScreen />;
+  }
+
   return (
-    <AuthProvider>
+    <FinanceDataProvider>
       <div className="min-h-screen bg-slate-100 pb-20">
         <header className="bg-white shadow-sm sticky top-0 z-40">
-          <div className="max-w-2xl mx-auto px-4 py-4">
-            <h1 className="text-2xl font-bold text-slate-900">
+          <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="px-3 py-1 rounded-full bg-blue-50 text-blue-700 text-sm font-semibold">Axis</div>
+              <span className="text-xs uppercase tracking-[0.2em] text-slate-400">Finance</span>
+            </div>
+            <h1 className="text-xl font-bold text-slate-900">
               {currentScreen === 'dashboard' && 'Dashboard'}
               {currentScreen === 'extrato' && 'Extrato'}
-              {currentScreen === 'cards' && 'Cartões'}
+              {currentScreen === 'cards' && 'Cartoes'}
               {currentScreen === 'settings' && 'Ajustes'}
             </h1>
           </div>
@@ -35,7 +46,7 @@ function App() {
         </main>
 
         <nav className="fixed bottom-0 left-0 right-0 bg-white border-t border-slate-200 z-50">
-          <div className="max-w-2xl mx-auto flex items-center justify-around">
+          <div className="max-w-2xl mx-auto flex items-center justify-around px-2 pt-2 pb-5">
             <button
               onClick={() => setCurrentScreen('dashboard')}
               className={`flex flex-col items-center gap-1 py-3 px-4 transition-colors ${
@@ -62,10 +73,11 @@ function App() {
 
             <button
               onClick={() => setShowAddModal(true)}
-              className="relative -mt-6"
+              className="relative -mt-10 active:scale-95 transition-transform"
+              aria-label="Adicionar lan?amento"
             >
-              <div className="w-14 h-14 bg-blue-600 rounded-full flex items-center justify-center shadow-lg hover:bg-blue-700 transition-colors">
-                <Plus className="w-7 h-7 text-white" />
+              <div className="w-20 h-20 bg-gradient-to-br from-blue-600 to-indigo-600 rounded-full flex items-center justify-center shadow-2xl shadow-blue-500/40 ring-4 ring-white">
+                <Plus className="w-9 h-9 text-white" />
               </div>
             </button>
 
@@ -78,7 +90,7 @@ function App() {
               }`}
             >
               <CreditCard className="w-6 h-6" />
-              <span className="text-xs font-medium">Cartões</span>
+              <span className="text-xs font-medium">Cartoes</span>
             </button>
 
             <button
@@ -100,6 +112,14 @@ function App() {
           onClose={() => setShowAddModal(false)}
         />
       </div>
+    </FinanceDataProvider>
+  );
+}
+
+function App() {
+  return (
+    <AuthProvider>
+      <AppShell />
     </AuthProvider>
   );
 }

@@ -1,9 +1,20 @@
-import { useState } from 'react';
-import { Plus, Edit2, Trash2, Wallet, Tag, CreditCard as CreditCardIcon } from 'lucide-react';
+import { useState, FocusEvent } from 'react';
+import {
+  Plus,
+  Edit2,
+  Trash2,
+  Wallet,
+  Tag,
+  CreditCard as CreditCardIcon,
+  User,
+  Database,
+} from 'lucide-react';
+import type { LucideIcon } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import { useFinanceData } from '../hooks/useFinanceData';
-import { formatCurrency } from '../utils/calculations';
+import { formatCurrency, formatCurrencyField, parseCurrencyInput } from '../utils/calculations';
 import { Account, Category, CreditCard } from '../types';
+import { supabase } from '../lib/supabase';
 
 type SettingsTab = 'accounts' | 'categories' | 'cards';
 
@@ -30,29 +41,30 @@ export function Settings() {
   const [editingAccount, setEditingAccount] = useState<Account | null>(null);
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [editingCard, setEditingCard] = useState<CreditCard | null>(null);
+  const [isClearing, setIsClearing] = useState(false);
 
-  const handleAddAccount = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleAddAccount = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
 
     const accountData = {
       name: formData.get('name') as string,
       type: formData.get('type') as 'Corrente' | 'Investimento' | 'Dinheiro',
-      currentBalance: parseFloat(formData.get('balance') as string),
+      currentBalance: parseCurrencyInput(formData.get('balance') as string),
       includeInTotal: formData.get('includeInTotal') === 'on',
     };
 
     if (editingAccount) {
-      updateAccount(editingAccount.id, accountData);
+      await updateAccount(editingAccount.id, accountData);
     } else {
-      addAccount(accountData);
+      await addAccount(accountData);
     }
 
     setShowAccountModal(false);
     setEditingAccount(null);
   };
 
-  const handleAddCategory = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleAddCategory = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
 
@@ -62,20 +74,20 @@ export function Settings() {
       color: formData.get('color') as string,
       type: formData.get('type') as 'Receita' | 'Despesa',
       logicTag: formData.get('logicTag') as 'Essencial' | 'Supérfluo' | 'Investimento' | undefined,
-      monthlyBudget: formData.get('budget') ? parseFloat(formData.get('budget') as string) : undefined,
+      monthlyBudget: formData.get('budget') ? parseCurrencyInput(formData.get('budget') as string) : undefined,
     };
 
     if (editingCategory) {
-      updateCategory(editingCategory.id, categoryData);
+      await updateCategory(editingCategory.id, categoryData);
     } else {
-      addCategory(categoryData);
+      await addCategory(categoryData);
     }
 
     setShowCategoryModal(false);
     setEditingCategory(null);
   };
 
-  const handleAddCard = (e: React.FormEvent<HTMLFormElement>) => {
+  const handleAddCard = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
 
@@ -83,13 +95,13 @@ export function Settings() {
       name: formData.get('name') as string,
       closingDay: parseInt(formData.get('closingDay') as string),
       dueDay: parseInt(formData.get('dueDay') as string),
-      totalLimit: parseFloat(formData.get('limit') as string),
+      totalLimit: parseCurrencyInput(formData.get('limit') as string),
     };
 
     if (editingCard) {
-      updateCreditCard(editingCard.id, cardData);
+      await updateCreditCard(editingCard.id, cardData);
     } else {
-      addCreditCard(cardData);
+      await addCreditCard(cardData);
     }
 
     setShowCardModal(false);
@@ -102,46 +114,113 @@ export function Settings() {
     'coffee', 'gift', 'plane', 'book', 'zap', 'star'
   ];
 
+  const handleCurrencyBlur = (event: FocusEvent<HTMLInputElement>) => {
+    event.currentTarget.value = formatCurrencyField(event.currentTarget.value);
+  };
+
+  type SettingsMenuItem = {
+    id: string;
+    title: string;
+    description: string;
+    icon: LucideIcon;
+    tab?: SettingsTab;
+    status?: string;
+  };
+
+  const menuItems: SettingsMenuItem[] = [
+    {
+      id: 'accounts',
+      title: 'Gerenciar Contas',
+      description: 'Adicionar ou editar contas bancárias',
+      icon: Wallet,
+      tab: 'accounts',
+    },
+    {
+      id: 'categories',
+      title: 'Categorias',
+      description: 'Personalizar categorias e orçamentos',
+      icon: Tag,
+      tab: 'categories',
+    },
+    {
+      id: 'cards',
+      title: 'Cartões de Crédito',
+      description: 'Configurar cartões e limites',
+      icon: CreditCardIcon,
+      tab: 'cards',
+    },
+    {
+      id: 'profile',
+      title: 'Perfil',
+      description: 'Editar informações pessoais',
+      icon: User,
+      status: 'Em breve',
+    },
+    {
+      id: 'backup',
+      title: 'Backup & Dados',
+      description: 'Exportar ou importar dados',
+      icon: Database,
+      status: 'Em breve',
+    },
+  ];
+
   return (
-    <div className="space-y-4">
-      <div className="bg-white rounded-xl shadow-sm overflow-hidden">
-        <div className="flex border-b border-slate-200">
-          <button
-            onClick={() => setActiveTab('accounts')}
-            className={`flex-1 px-4 py-3 font-medium transition-colors ${
-              activeTab === 'accounts'
-                ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
-                : 'text-slate-600 hover:bg-slate-50'
-            }`}
-          >
-            <Wallet className="w-4 h-4 inline-block mr-2" />
-            Contas
-          </button>
-          <button
-            onClick={() => setActiveTab('categories')}
-            className={`flex-1 px-4 py-3 font-medium transition-colors ${
-              activeTab === 'categories'
-                ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
-                : 'text-slate-600 hover:bg-slate-50'
-            }`}
-          >
-            <Tag className="w-4 h-4 inline-block mr-2" />
-            Categorias
-          </button>
-          <button
-            onClick={() => setActiveTab('cards')}
-            className={`flex-1 px-4 py-3 font-medium transition-colors ${
-              activeTab === 'cards'
-                ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
-                : 'text-slate-600 hover:bg-slate-50'
-            }`}
-          >
-            <CreditCardIcon className="w-4 h-4 inline-block mr-2" />
-            Cartões
-          </button>
+    <div className="space-y-6">
+      <div className="bg-[#0f1d35] text-white rounded-[28px] p-6 shadow-2xl space-y-4">
+        <h2 className="text-2xl font-semibold">Ajustes</h2>
+        <button
+          onClick={async () => {
+            if (confirm('Zerar todos os dados (contas, categorias, cartoes e transacoes)?')) {
+              setIsClearing(true);
+              await supabase.from('transacoes').delete();
+              await supabase.from('cartoes').delete();
+              await supabase.from('categorias').delete();
+              await supabase.from('contas').delete();
+              window.location.reload();
+            }
+          }}
+          disabled={isClearing}
+          className="w-full px-4 py-3 bg-red-600 text-white rounded-xl font-semibold hover:bg-red-700 transition-colors disabled:opacity-60"
+        >
+          {isClearing ? 'Limpando...' : 'Zerar todos os dados'}
+        </button>
+        <div className="space-y-3">
+          {menuItems.map(item => {
+            const Icon = item.icon;
+            const isActive = item.tab && activeTab === item.tab;
+            const isClickable = Boolean(item.tab);
+            return (
+              <button
+                key={item.id}
+                type="button"
+                onClick={() => item.tab && setActiveTab(item.tab)}
+                disabled={!isClickable}
+                className={`w-full flex items-center gap-4 rounded-2xl px-4 py-4 border text-left transition-colors ${
+                  isActive
+                    ? 'border-blue-400/70 bg-slate-900'
+                    : 'border-white/10 bg-slate-900/60'
+                } ${isClickable ? 'hover:border-blue-300/60' : 'opacity-60 cursor-not-allowed'}`}
+              >
+                <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center">
+                  <Icon className="w-5 h-5 text-emerald-200" />
+                </div>
+                <div className="flex-1">
+                  <p className="font-semibold">{item.title}</p>
+                  <p className="text-sm text-white/70">{item.description}</p>
+                </div>
+                {item.status && (
+                  <span className="text-xs text-white/60 border border-white/20 rounded-full px-3 py-1">
+                    {item.status}
+                  </span>
+                )}
+              </button>
+            );
+          })}
         </div>
 
-        <div className="p-4">
+        <div className="bg-white rounded-2xl shadow-lg text-slate-900">
+          <div className="p-4">
           {activeTab === 'accounts' && (
             <div className="space-y-3">
               <button
@@ -303,6 +382,7 @@ export function Settings() {
           )}
         </div>
       </div>
+    </div>
 
       {showAccountModal && (
         <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
@@ -341,10 +421,17 @@ export function Settings() {
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">Saldo Atual</label>
                 <input
-                  type="number"
-                  step="0.01"
+                  type="text"
+                  inputMode="decimal"
                   name="balance"
-                  defaultValue={editingAccount?.currentBalance || 0}
+                  placeholder="R$ 0,00"
+                  defaultValue={
+                    typeof editingAccount?.currentBalance === 'number'
+                      ? formatCurrency(editingAccount.currentBalance)
+                      : ''
+                  }
+                  onFocus={(e) => e.currentTarget.select()}
+                  onBlur={handleCurrencyBlur}
                   className="w-full px-4 py-3 bg-slate-50 border-0 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />
@@ -459,11 +546,17 @@ export function Settings() {
                   Orçamento Mensal (opcional)
                 </label>
                 <input
-                  type="number"
-                  step="0.01"
+                  type="text"
+                  inputMode="decimal"
                   name="budget"
-                  defaultValue={editingCategory?.monthlyBudget}
-                  placeholder="0.00"
+                  defaultValue={
+                    typeof editingCategory?.monthlyBudget === 'number'
+                      ? formatCurrency(editingCategory.monthlyBudget)
+                      : ''
+                  }
+                  placeholder="R$ 0,00"
+                  onFocus={(e) => e.currentTarget.select()}
+                  onBlur={handleCurrencyBlur}
                   className="w-full px-4 py-3 bg-slate-50 border-0 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                 />
               </div>
@@ -539,10 +632,17 @@ export function Settings() {
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">Limite Total</label>
                 <input
-                  type="number"
-                  step="0.01"
+                  type="text"
+                  inputMode="decimal"
                   name="limit"
-                  defaultValue={editingCard?.totalLimit || 0}
+                  placeholder="R$ 0,00"
+                  defaultValue={
+                    typeof editingCard?.totalLimit === 'number'
+                      ? formatCurrency(editingCard.totalLimit)
+                      : ''
+                  }
+                  onFocus={(e) => e.currentTarget.select()}
+                  onBlur={handleCurrencyBlur}
                   className="w-full px-4 py-3 bg-slate-50 border-0 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
                   required
                 />

@@ -52,6 +52,20 @@ export function calculateMonthlyExpenses(
     .reduce((sum, txn) => sum + txn.amount, 0);
 }
 
+export function calculateMonthlyFixedExpenses(
+  transactions: Transaction[],
+  month: number,
+  year: number
+): number {
+  return transactions
+    .filter(txn => {
+      const date = new Date(txn.date);
+      const isSameMonth = date.getMonth() === month && date.getFullYear() === year;
+      return isSameMonth && !txn.isTransfer && txn.isRecurring;
+    })
+    .reduce((sum, txn) => sum + txn.amount, 0);
+}
+
 export function calculateExpensesByLogicTag(
   transactions: Transaction[],
   categories: Category[],
@@ -104,8 +118,39 @@ export function formatCurrency(value: number): string {
   }).format(value);
 }
 
+export function parseCurrencyInput(value: string): number {
+  if (!value) return 0;
+  let sanitized = value.replace(/[^\d.,-]/g, '');
+
+  if (sanitized.includes(',')) {
+    sanitized = sanitized.replace(/\./g, '').replace(',', '.');
+  } else {
+    const lastDot = sanitized.lastIndexOf('.');
+    if (lastDot !== -1) {
+      const integerPart = sanitized.slice(0, lastDot).replace(/\./g, '');
+      const decimalPart = sanitized.slice(lastDot + 1);
+      sanitized = `${integerPart}.${decimalPart}`;
+    } else {
+      sanitized = sanitized.replace(/\./g, '');
+    }
+  }
+
+  const parsed = parseFloat(sanitized);
+  return Number.isNaN(parsed) ? 0 : parsed;
+}
+
+export function formatCurrencyField(value: string | number): string {
+  if (typeof value === 'number') {
+    return formatCurrency(value);
+  }
+
+  const numeric = parseCurrencyInput(value);
+  if (!value && numeric === 0) return '';
+  return formatCurrency(numeric);
+}
+
 export function formatDate(date: string): string {
-  return new Intl.DateFormat('pt-BR', {
+  return new Intl.DateTimeFormat('pt-BR', {
     day: '2-digit',
     month: '2-digit',
     year: 'numeric',
