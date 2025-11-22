@@ -56,4 +56,4 @@ export interface Invoice {
   dueDate: Date;
 }
 
-export type TransactionType = 'Despesa' | 'Receita' | 'Transferência';
+export type TransactionType = 'Despesa' | 'Receita' | 'Transferencia';

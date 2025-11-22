@@ -61,7 +61,7 @@ export function CreditCards() {
     });
   }, [selectedCard, transactions]);
 
-  const currentInvoice = invoices.find((inv, index) => index === monthOffset + 2);
+  const currentInvoice = invoices.find((_, index) => index === monthOffset + 2);
 
   const goToPreviousMonth = () => {
     if (monthOffset > -2) setMonthOffset(monthOffset - 1);

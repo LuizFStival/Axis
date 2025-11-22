@@ -1,4 +1,4 @@
-import { useState, FocusEvent } from 'react';
+import { useState, FocusEvent, type ComponentType } from 'react';
 import {
   Plus,
   Edit2,
@@ -107,6 +107,8 @@ export function Settings() {
     setShowCardModal(false);
     setEditingCard(null);
   };
+
+  const iconRegistry = Icons as unknown as Record<string, ComponentType<{ className?: string }>>;
 
   const iconOptions = [
     'wallet', 'dollar-sign', 'trending-up', 'home', 'car', 'utensils',
@@ -281,7 +283,7 @@ export function Settings() {
               </button>
 
               {categories.map(category => {
-                const IconComponent = (Icons as Record<string, React.FC<{ className?: string }>>)[
+                const IconComponent = iconRegistry[
                   category.icon.split('-').map((word, i) =>
                     i === 0 ? word.charAt(0).toUpperCase() + word.slice(1) :
                     word.charAt(0).toUpperCase() + word.slice(1)

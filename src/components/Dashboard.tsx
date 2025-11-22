@@ -20,6 +20,48 @@ import {
   formatCurrency,
 } from '../utils/calculations';
 
+type NetWorthChartPoint = {
+  key: string;
+  label: string;
+  assets: number;
+  liabilities: number;
+  netWorth: number;
+};
+
+function NetWorthChart({ data }: { data: NetWorthChartPoint[] }) {
+  if (data.length === 0) return null;
+
+  const maxValue = Math.max(
+    ...data.map(point => Math.max(point.assets, point.liabilities, Math.abs(point.netWorth), 1))
+  );
+
+  return (
+    <div className="flex items-end gap-3 h-36">
+      {data.map(point => {
+        const assetsWidth = Math.min((point.assets / maxValue) * 100, 100);
+        const liabilitiesWidth = Math.min((point.liabilities / maxValue) * 100, 100);
+        const netHeight = Math.min((Math.abs(point.netWorth) / maxValue) * 100, 100);
+        const netColor = point.netWorth >= 0 ? 'bg-emerald-500' : 'bg-rose-500';
+
+        return (
+          <div key={point.key} className="flex-1 flex flex-col items-center gap-1 text-xs text-slate-500">
+            <div className="w-full rounded-full bg-slate-200 h-2 overflow-hidden">
+              <div className="h-full bg-blue-500" style={{ width: `${assetsWidth}%` }} />
+            </div>
+            <div className="w-full rounded-full bg-slate-200 h-2 overflow-hidden">
+              <div className="h-full bg-rose-400" style={{ width: `${liabilitiesWidth}%` }} />
+            </div>
+            <div className="w-full h-16 bg-slate-200 rounded-full overflow-hidden flex items-end">
+              <div className={`w-full ${netColor}`} style={{ height: `${netHeight}%` }} />
+            </div>
+            <span className="font-medium text-slate-700">{point.label}</span>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 export function Dashboard() {
   const { accounts, creditCards, transactions, categories } = useFinanceData();
 
@@ -83,7 +125,7 @@ export function Dashboard() {
   const investmentShare = stats.monthlyExpenses > 0 ? (stats.investment / stats.monthlyExpenses) * 100 : 0;
   const essentialShare = stats.monthlyExpenses > 0 ? (stats.essential / stats.monthlyExpenses) * 100 : 0;
 
-  const netWorthSeries = useMemo(() => {
+  const netWorthSeries = useMemo<NetWorthChartPoint[]>(() => {
     const paid = transactions.filter(txn => txn.status === 'pago' && !txn.isTransfer);
     const monthly: Record<string, { income: number; expense: number; year: number; month: number }> = {};
 
@@ -139,14 +181,6 @@ export function Dashboard() {
     colorClass: string;
     badgeClass: string;
     subtitle?: string;
-  };
-
-  type NetWorthPoint = {
-    key: string;
-    label: string;
-    assets: number;
-    liabilities: number;
-    netWorth: number;
   };
 
   const accountTiles: FinanceTile[] = accounts.map(account => {

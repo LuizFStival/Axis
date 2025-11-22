@@ -70,12 +70,12 @@ export function QuickAddModal({ isOpen, onClose }: QuickAddModalProps) {
     const amountValue = parseCurrencyInput(amount);
     if (amountValue <= 0) return;
 
-    if (type === 'Transfer?ncia') {
+    if (type === 'Transferencia') {
       if (!accountId || !transferToAccountId) return;
 
       await addTransaction({
         amount: amountValue,
-        description: description || 'Transfer?ncia',
+        description: description || 'Transferencia',
         date,
         status: 'pago',
         accountId,
@@ -151,9 +151,9 @@ export function QuickAddModal({ isOpen, onClose }: QuickAddModalProps) {
             </button>
             <button
               type="button"
-              onClick={() => setType('Transferência')}
+              onClick={() => setType('Transferencia')}
               className={`flex-1 py-3 rounded-xl font-semibold transition-all ${
-                type === 'Transferência'
+                type === 'Transferencia'
                   ? 'bg-blue-600 text-white shadow-lg'
                   : 'bg-slate-100 text-slate-600'
               }`}
@@ -209,7 +209,7 @@ export function QuickAddModal({ isOpen, onClose }: QuickAddModalProps) {
             />
           </div>
 
-          {type !== 'Transferência' && (
+          {type !== 'Transferencia' && (
             <>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
@@ -358,7 +358,7 @@ export function QuickAddModal({ isOpen, onClose }: QuickAddModalProps) {
             </>
           )}
 
-          {type === 'Transferência' && (
+          {type === 'Transferencia' && (
             <>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">
