@@ -57,6 +57,56 @@ export function Extrato() {
       dailyAvailable,
     };
   }, [transactions, categories, currentMonth, currentYear, daysInMonth, investmentGoalPercent]);
+  const mentorBaseIncome = useMemo(
+    () => (spendingSnapshot.monthlyIncome > 0 ? spendingSnapshot.monthlyIncome : 3365.84),
+    [spendingSnapshot.monthlyIncome]
+  );
+  const mentorRules = useMemo(() => {
+    const buildStatus = (actual: number, target: number, type: 'max' | 'min') => {
+      if (target <= 0) return 'ok';
+      const ratio = actual / target;
+      if (type === 'max') {
+        if (ratio > 1.05) return 'danger';
+        if (ratio > 0.9) return 'warn';
+        return 'ok';
+      }
+      if (ratio >= 1) return 'ok';
+      if (ratio >= 0.7) return 'warn';
+      return 'danger';
+    };
+    const essentialTarget = mentorBaseIncome * 0.5;
+    const superfluousTarget = mentorBaseIncome * 0.3;
+    const investmentTarget = mentorBaseIncome * 0.2;
+    return [
+      {
+        id: 'invest',
+        label: 'Investimentos',
+        actual: spendingSnapshot.investment,
+        target: investmentTarget,
+        type: 'min' as const,
+        status: buildStatus(spendingSnapshot.investment, investmentTarget, 'min'),
+        helper: 'Mínimo 20% da renda',
+      },
+      {
+        id: 'essential',
+        label: 'Essenciais',
+        actual: spendingSnapshot.essential,
+        target: essentialTarget,
+        type: 'max' as const,
+        status: buildStatus(spendingSnapshot.essential, essentialTarget, 'max'),
+        helper: 'Máximo 50% da renda',
+      },
+      {
+        id: 'superfluous',
+        label: 'Superfluos',
+        actual: spendingSnapshot.superfluous,
+        target: superfluousTarget,
+        type: 'max' as const,
+        status: buildStatus(spendingSnapshot.superfluous, superfluousTarget, 'max'),
+        helper: 'Máximo 30% da renda',
+      },
+    ];
+  }, [mentorBaseIncome, spendingSnapshot.essential, spendingSnapshot.superfluous, spendingSnapshot.investment]);
   const totalBalance = useMemo(
     () => calculateTotalBalance(accounts),
     [accounts]
@@ -354,6 +404,60 @@ export function Extrato() {
         <div className="bg-white rounded-[28px] p-5 shadow-lg border border-slate-100 space-y-4">
           <div className="flex items-center justify-between">
             <div>
+              <p className="text-sm font-semibold text-slate-900">Mentor Financeiro</p>
+              <p className="text-xs text-slate-500">Renda base usada: {formatCurrency(mentorBaseIncome)}</p>
+            </div>
+            <span className="text-[11px] font-semibold text-slate-500">Alerta de Superfluos/Invest</span>
+          </div>
+          <div className="grid gap-3 md:grid-cols-3">
+            {mentorRules.map(rule => {
+              const ratio = rule.target > 0 ? rule.actual / rule.target : 0;
+              const width = Math.min(ratio * 100, 130);
+              const statusStyles: Record<'ok' | 'warn' | 'danger', { badge: string; text: string; label: string }> = {
+                ok: { badge: 'bg-emerald-50 text-emerald-700 border border-emerald-100', text: 'text-emerald-700', label: 'OK' },
+                warn: { badge: 'bg-amber-50 text-amber-700 border border-amber-100', text: 'text-amber-700', label: 'Atencao' },
+                danger: { badge: 'bg-rose-50 text-rose-700 border border-rose-100', text: 'text-rose-700', label: 'Acima do limite' },
+              };
+              const styles = statusStyles[rule.status as keyof typeof statusStyles] ?? statusStyles.ok;
+              const barColor = rule.status === 'danger' ? 'bg-rose-500' : rule.status === 'warn' ? 'bg-amber-400' : 'bg-emerald-500';
+              return (
+                <div key={rule.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4 space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm font-semibold text-slate-900">{rule.label}</p>
+                      <p className="text-xs text-slate-500">{rule.helper}</p>
+                    </div>
+                    <span className={`text-[11px] font-semibold px-3 py-1 rounded-full ${styles.badge}`}>{styles.label}</span>
+                  </div>
+                  <div className="flex items-center justify-between text-sm">
+                    <div>
+                      <p className="text-xs text-slate-500">{rule.type === 'min' ? 'Investido' : 'Gasto'}</p>
+                      <p className="font-semibold text-slate-900">{formatCurrency(rule.actual)}</p>
+                    </div>
+                    <div className="text-right">
+                      <p className="text-xs text-slate-500">Meta/Teto</p>
+                      <p className={`font-semibold ${styles.text}`}>{formatCurrency(rule.target)}</p>
+                    </div>
+                  </div>
+                  <div className="h-2 bg-white rounded-full overflow-hidden border border-slate-100">
+                    <div className={`h-full ${barColor}`} style={{ width: `${width}%` }} />
+                  </div>
+                  <div className="text-xs text-slate-500 flex justify-between">
+                    <span>
+                      {rule.type === 'max'
+                        ? `${Math.min(ratio * 100, 999).toFixed(1)}% do teto`
+                        : `${Math.min(ratio * 100, 999).toFixed(1)}% da meta`}
+                    </span>
+                    {rule.status === 'danger' && <span className="text-rose-600 font-semibold">Ajuste agora</span>}
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+        <div className="bg-white rounded-[28px] p-5 shadow-lg border border-slate-100 space-y-4">
+          <div className="flex items-center justify-between">
+            <div>
               <p className="text-sm font-semibold text-slate-900">Farol de Gastos</p>
               <p className="text-xs text-slate-500">Essencial x supérfluo x investimento (mês atual)</p>
             </div>
@@ -478,7 +582,7 @@ export function Extrato() {
           <div className="rounded-2xl border border-rose-100 bg-rose-50 p-4">
             <p className="text-xs text-rose-700">Acima do orçamento</p>
             <p className="text-2xl font-bold text-rose-700">{budgetResume.overBudget}</p>
-            <p className="text-[11px] text-rose-600">Atenção neste mês</p>
+            <p className="text-[11px] text-rose-600">Atencao neste mês</p>
           </div>
         </div>
         {sortedCategoryBudgets.length === 0 ? (
