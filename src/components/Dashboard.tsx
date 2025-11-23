@@ -244,6 +244,65 @@ export function Dashboard() {
     },
   ];
 
+  const incomeThisMonth = stats.monthlyIncome;
+  const spendingBuckets = useMemo(() => {
+    const paidThisMonth = transactions.filter(txn => {
+      const date = new Date(txn.date);
+      return (
+        date.getMonth() === currentMonth &&
+        date.getFullYear() === currentYear &&
+        txn.status === 'pago' &&
+        !txn.isTransfer
+      );
+    });
+
+    const fixed = paidThisMonth
+      .filter(txn => txn.isRecurring)
+      .reduce((sum, txn) => sum + txn.amount, 0);
+
+    const parcels = paidThisMonth
+      .filter(
+        txn =>
+          (txn.totalInstallments ?? 0) > 1 &&
+          (txn.installmentNumber ?? 0) <= (txn.totalInstallments ?? 0)
+      )
+      .reduce((sum, txn) => sum + txn.amount, 0);
+
+    const variable = paidThisMonth
+      .filter(txn => !txn.isRecurring && !((txn.totalInstallments ?? 0) > 1))
+      .reduce((sum, txn) => sum + txn.amount, 0);
+
+    return { fixed, parcels, variable };
+  }, [transactions, currentMonth, currentYear]);
+
+  const totalCommitment = spendingBuckets.fixed + spendingBuckets.parcels + spendingBuckets.variable;
+  const bucketRows = [
+    {
+      id: 'fixed',
+      label: 'Gastos Fixos',
+      value: spendingBuckets.fixed,
+      color: 'bg-slate-800',
+      text: 'text-slate-800',
+      helper: 'Recorrentes do mês (aluguel, assinaturas)',
+    },
+    {
+      id: 'parcels',
+      label: 'Parcelados',
+      value: spendingBuckets.parcels,
+      color: 'bg-orange-500',
+      text: 'text-orange-600',
+      helper: 'Dívida passada (parcelas em aberto)',
+    },
+    {
+      id: 'variable',
+      label: 'Variável / À vista',
+      value: spendingBuckets.variable,
+      color: spendingBuckets.variable > incomeThisMonth * 0.5 ? 'bg-rose-500' : 'bg-emerald-500',
+      text: 'text-emerald-600',
+      helper: 'Gastos sob controle diário',
+    },
+  ];
+
   return (
     <div className="space-y-6">
       <div className="bg-white rounded-[28px] p-6 shadow-lg border border-slate-100">
@@ -366,6 +425,43 @@ export function Dashboard() {
               </div>
             </div>
           ))}
+        </div>
+      </div>
+
+      <div className="bg-white rounded-[28px] p-6 shadow-lg border border-slate-100 space-y-4">
+        <div className="flex items-center gap-3">
+          <div className="w-12 h-12 rounded-full bg-slate-100 text-slate-700 flex items-center justify-center">
+            <Wallet className="w-5 h-5" />
+          </div>
+          <div>
+            <p className="text-sm font-semibold text-slate-900">Comprometimento de Renda</p>
+            <p className="text-xs text-slate-500">Fixos, Parcelados e Variável no mês</p>
+          </div>
+        </div>
+        <div className="space-y-3">
+          {bucketRows.map(row => {
+            const width = totalCommitment > 0 ? Math.min((row.value / totalCommitment) * 100, 100) : 0;
+            return (
+              <div key={row.id} className="space-y-1">
+                <div className="flex items-center justify-between text-sm">
+                  <div className="flex flex-col">
+                    <span className="text-slate-700 font-semibold">{row.label}</span>
+                    <span className="text-xs text-slate-500">{row.helper}</span>
+                  </div>
+                  <span className={`font-semibold ${row.text}`}>{formatCurrency(row.value)}</span>
+                </div>
+                <div className="h-2 w-full bg-slate-200 rounded-full overflow-hidden">
+                  <div className={`h-full ${row.color}`} style={{ width: `${width}%` }} />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+        <div className="text-xs text-slate-500 flex items-center justify-between">
+          <span>Renda do mês: {formatCurrency(incomeThisMonth)}</span>
+          <span className="font-semibold text-slate-800">
+            Total comprometido: {formatCurrency(totalCommitment)}
+          </span>
         </div>
       </div>
 
