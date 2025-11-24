@@ -1,4 +1,4 @@
-import { useState, FocusEvent, type ComponentType } from 'react';
+import { useState, useEffect, FocusEvent, type ComponentType } from 'react';
 import {
   Plus,
   Edit2,
@@ -15,6 +15,7 @@ import { useFinanceData } from '../hooks/useFinanceData';
 import { formatCurrency, formatCurrencyField, parseCurrencyInput } from '../utils/calculations';
 import { Account, Category, CreditCard } from '../types';
 import { supabase } from '../lib/supabase';
+import { useSettings } from '../contexts/SettingsContext';
 
 type SettingsTab = 'accounts' | 'categories' | 'cards';
 
@@ -33,6 +34,7 @@ export function Settings() {
     updateCreditCard,
     deleteCreditCard,
   } = useFinanceData();
+  const { investmentGoalPercent, setInvestmentGoalPercent } = useSettings();
 
   const [activeTab, setActiveTab] = useState<SettingsTab>('accounts');
   const [showAccountModal, setShowAccountModal] = useState(false);
@@ -42,6 +44,7 @@ export function Settings() {
   const [editingCategory, setEditingCategory] = useState<Category | null>(null);
   const [editingCard, setEditingCard] = useState<CreditCard | null>(null);
   const [isClearing, setIsClearing] = useState(false);
+  const [selectedIcon, setSelectedIcon] = useState('wallet');
 
   const handleAddAccount = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
@@ -67,13 +70,18 @@ export function Settings() {
   const handleAddCategory = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
+    const logicTagRaw = formData.get('logicTag');
+    const logicTag =
+      logicTagRaw && logicTagRaw !== ''
+        ? (logicTagRaw as 'Essencial' | 'Sup?rfluo' | 'Investimento')
+        : undefined;
 
     const categoryData = {
       name: formData.get('name') as string,
-      icon: formData.get('icon') as string,
+      icon: selectedIcon,
       color: formData.get('color') as string,
       type: formData.get('type') as 'Receita' | 'Despesa',
-      logicTag: formData.get('logicTag') as 'Essencial' | 'Supérfluo' | 'Investimento' | undefined,
+      logicTag,
       monthlyBudget: formData.get('budget') ? parseCurrencyInput(formData.get('budget') as string) : undefined,
     };
 
@@ -115,10 +123,22 @@ export function Settings() {
     'shopping-bag', 'smile', 'briefcase', 'heart', 'music', 'phone',
     'coffee', 'gift', 'plane', 'book', 'zap', 'star'
   ];
+  const getIconComponent = (icon: string) => iconRegistry[
+    icon.split('-').map((word, i) =>
+      i === 0 ? word.charAt(0).toUpperCase() + word.slice(1) :
+      word.charAt(0).toUpperCase() + word.slice(1)
+    ).join('')
+  ];
 
   const handleCurrencyBlur = (event: FocusEvent<HTMLInputElement>) => {
     event.currentTarget.value = formatCurrencyField(event.currentTarget.value);
   };
+
+  useEffect(() => {
+    if (showCategoryModal) {
+      setSelectedIcon(editingCategory?.icon || iconOptions[0]);
+    }
+  }, [showCategoryModal, editingCategory]);
 
   type SettingsMenuItem = {
     id: string;
@@ -171,6 +191,29 @@ export function Settings() {
     <div className="space-y-6">
       <div className="bg-[#0f1d35] text-white rounded-[28px] p-6 shadow-2xl space-y-4">
         <h2 className="text-2xl font-semibold">Ajustes</h2>
+        <div className="bg-white/5 border border-white/10 rounded-2xl p-4 space-y-3">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <p className="text-sm font-semibold text-white">Meta de investimento</p>
+              <p className="text-xs text-white/70">Usada no Dashboard e no Extrato.</p>
+            </div>
+            <div className="flex items-center gap-2">
+              <input
+                type="number"
+                min={0}
+                max={100}
+                step="1"
+                value={investmentGoalPercent}
+                onChange={(e) => setInvestmentGoalPercent(parseFloat(e.target.value) || 0)}
+                className="w-20 px-3 py-2 rounded-lg bg-white/10 border border-white/20 text-white text-sm focus:outline-none focus:ring-2 focus:ring-blue-400"
+              />
+              <span className="text-sm text-white/70">% da renda</span>
+            </div>
+          </div>
+          <p className="text-xs text-white/60">
+            Registre aportes em categorias com tag logica &quot;Investimento&quot; (Ajustes &gt; Categorias) e marque as transacoes como pagas para contar no progresso.
+          </p>
+        </div>
         <button
           onClick={async () => {
             if (confirm('Zerar todos os dados (contas, categorias, cartoes e transacoes)?')) {
@@ -516,23 +559,31 @@ export function Settings() {
                 >
                   <option value="">Nenhuma</option>
                   <option value="Essencial">Essencial</option>
-                  <option value="Supérfluo">Supérfluo</option>
+                  <option value="Sup?rfluo">Sup?rfluo</option>
                   <option value="Investimento">Investimento</option>
                 </select>
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">Ícone</label>
-                <select
-                  name="icon"
-                  defaultValue={editingCategory?.icon || 'circle'}
-                  className="w-full px-4 py-3 bg-slate-50 border-0 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500"
-                >
-                  {iconOptions.map(icon => (
-                    <option key={icon} value={icon}>
-                      {icon}
-                    </option>
-                  ))}
-                </select>
+                <div className="grid grid-cols-4 gap-2">
+                  {iconOptions.map(icon => {
+                    const IconComp = getIconComponent(icon);
+                    const isActive = selectedIcon === icon;
+                    return (
+                      <button
+                        type="button"
+                        key={icon}
+                        onClick={() => setSelectedIcon(icon)}
+                        className={`border rounded-xl px-2 py-2 flex flex-col items-center gap-1 transition-colors ${
+                          isActive ? 'border-blue-500 bg-blue-50' : 'border-slate-200 bg-white hover:border-blue-300'
+                        }`}
+                      >
+                        {IconComp && <IconComp className="w-5 h-5 text-slate-700" />}
+                        <span className="text-[11px] text-slate-600">{icon}</span>
+                      </button>
+                    );
+                  })}
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-slate-700 mb-2">Cor</label>

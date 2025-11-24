@@ -19,6 +19,7 @@ import {
   calculateMonthlyFixedExpenses,
   formatCurrency,
 } from '../utils/calculations';
+import { useSettings } from '../contexts/SettingsContext';
 
 type NetWorthChartPoint = {
   key: string;
@@ -64,6 +65,7 @@ function NetWorthChart({ data }: { data: NetWorthChartPoint[] }) {
 
 export function Dashboard() {
   const { accounts, creditCards, transactions, categories } = useFinanceData();
+  const { investmentGoalPercent } = useSettings();
 
   const now = new Date();
   const currentMonth = now.getMonth();
@@ -116,9 +118,10 @@ export function Dashboard() {
   }, [creditCards, transactions]);
 
   const isSuperfluousHigh = stats.superfluousPercentage > 30;
-  const investmentGoal = 20;
-  const investmentGoalValue = Math.max(stats.monthlyIncome * (investmentGoal / 100), 0);
-  const investmentProgress = Math.min(Math.max(stats.investmentPercentage, 0), 100);
+  const investmentGoalValue = Math.max(stats.monthlyIncome * (investmentGoalPercent / 100), 0);
+  const investmentProgress = investmentGoalPercent > 0
+    ? Math.min(Math.max((stats.investmentPercentage / investmentGoalPercent) * 100, 0), 100)
+    : 100;
   const safeDays = Math.max(daysInMonth, 1);
   const availableBuffer = stats.monthlyIncome - stats.monthlyFixed - investmentGoalValue;
   const availableToday = Math.max(availableBuffer / safeDays, 0);
@@ -327,7 +330,7 @@ export function Dashboard() {
             <h3 className="text-sm font-medium text-white/70">Disponível para gastar hoje</h3>
             <p className="text-4xl font-bold mt-2">{formatCurrency(availableToday)}</p>
             <p className="text-xs text-white/60 mt-1">
-              Renda - contas fixas (marcadas por você) - meta investimento ({investmentGoal}%) dividido por {daysInMonth} dias.
+              Renda - contas fixas (marcadas por você) - meta investimento ({investmentGoalPercent}%) dividido por {daysInMonth} dias.
             </p>
           </div>
           <div className="bg-white/10 border border-white/10 rounded-2xl px-3 py-2 text-right">
@@ -359,7 +362,7 @@ export function Dashboard() {
           <div className="bg-white/5 border border-white/10 rounded-2xl p-4">
             <div className="flex items-center gap-2 text-sm text-blue-200 mb-1">
               <Target className="w-4 h-4" />
-              <span>Meta invest. ({investmentGoal}%)</span>
+              <span>Meta invest. ({investmentGoalPercent}%)</span>
             </div>
             <p className="text-xl font-semibold text-blue-200">
               {formatCurrency(investmentGoalValue)}
@@ -382,7 +385,7 @@ export function Dashboard() {
         <div className="flex justify-between text-sm text-slate-600 mb-2">
           <span>Investido este mês</span>
           <span className="font-semibold">
-            {stats.investmentPercentage.toFixed(1)}% de {investmentGoal}%
+            {stats.investmentPercentage.toFixed(1)}% de {investmentGoalPercent}%
           </span>
         </div>
         <div className="h-2 w-full bg-slate-200 rounded-full overflow-hidden">

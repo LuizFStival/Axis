@@ -2,6 +2,7 @@ import { useMemo, useState, type ComponentType, type CSSProperties } from 'react
 import { Search, ArrowUpRight, ArrowDownRight, ArrowRightLeft } from 'lucide-react';
 import * as Icons from 'lucide-react';
 import { useFinanceData } from '../hooks/useFinanceData';
+import { useSettings } from '../contexts/SettingsContext';
 import {
   calculateTotalBalance,
   calculateExpensesByLogicTag,
@@ -13,6 +14,7 @@ import {
 type FilterType = 'all' | 'income' | 'expense' | 'transfer';
 export function Extrato() {
   const { transactions, categories, accounts, creditCards } = useFinanceData();
+  const { investmentGoalPercent } = useSettings();
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<FilterType>('all');
   const [selectedAccount, setSelectedAccount] = useState<string>('all');
@@ -20,7 +22,7 @@ export function Extrato() {
   const today = useMemo(() => new Date(), []);
   const currentMonth = today.getMonth();
   const currentYear = today.getFullYear();
-  const investmentGoalPercent = 0.2;
+  const investmentGoalRatio = investmentGoalPercent / 100;
   const monthLabel = useMemo(
     () =>
       new Date(currentYear, currentMonth, 1).toLocaleDateString('pt-BR', {
@@ -42,7 +44,7 @@ export function Extrato() {
       currentYear
     );
     const monthlyFixed = calculateMonthlyFixedExpenses(transactions, currentMonth, currentYear);
-    const investmentGoalValue = monthlyIncome > 0 ? monthlyIncome * investmentGoalPercent : 0;
+    const investmentGoalValue = monthlyIncome > 0 ? monthlyIncome * investmentGoalRatio : 0;
     const buffer = monthlyIncome - monthlyFixed - investmentGoalValue;
     const safeDays = Math.max(daysInMonth, 1);
     const dailyAvailable = Math.max(buffer / safeDays, 0);
@@ -56,7 +58,7 @@ export function Extrato() {
       buffer,
       dailyAvailable,
     };
-  }, [transactions, categories, currentMonth, currentYear, daysInMonth, investmentGoalPercent]);
+  }, [transactions, categories, currentMonth, currentYear, daysInMonth, investmentGoalRatio]);
   const mentorBaseIncome = useMemo(
     () => (spendingSnapshot.monthlyIncome > 0 ? spendingSnapshot.monthlyIncome : 3365.84),
     [spendingSnapshot.monthlyIncome]
@@ -75,8 +77,9 @@ export function Extrato() {
       return 'danger';
     };
     const essentialTarget = mentorBaseIncome * 0.5;
-    const superfluousTarget = mentorBaseIncome * 0.3;
-    const investmentTarget = mentorBaseIncome * 0.2;
+    const superfluousCapPercent = Math.max(0, 1 - 0.5 - investmentGoalRatio);
+    const superfluousTarget = mentorBaseIncome * superfluousCapPercent;
+    const investmentTarget = mentorBaseIncome * investmentGoalRatio;
     return [
       {
         id: 'invest',
@@ -85,7 +88,7 @@ export function Extrato() {
         target: investmentTarget,
         type: 'min' as const,
         status: buildStatus(spendingSnapshot.investment, investmentTarget, 'min'),
-        helper: 'Mínimo 20% da renda',
+        helper: `Minimo ${investmentGoalPercent}% da renda`,
       },
       {
         id: 'essential',
@@ -94,7 +97,7 @@ export function Extrato() {
         target: essentialTarget,
         type: 'max' as const,
         status: buildStatus(spendingSnapshot.essential, essentialTarget, 'max'),
-        helper: 'Máximo 50% da renda',
+        helper: 'Maximo 50% da renda',
       },
       {
         id: 'superfluous',
@@ -103,10 +106,10 @@ export function Extrato() {
         target: superfluousTarget,
         type: 'max' as const,
         status: buildStatus(spendingSnapshot.superfluous, superfluousTarget, 'max'),
-        helper: 'Máximo 30% da renda',
+        helper: `Maximo ${(superfluousCapPercent * 100).toFixed(0)}% da renda`,
       },
     ];
-  }, [mentorBaseIncome, spendingSnapshot.essential, spendingSnapshot.superfluous, spendingSnapshot.investment]);
+  }, [mentorBaseIncome, spendingSnapshot.essential, spendingSnapshot.superfluous, spendingSnapshot.investment, investmentGoalPercent, investmentGoalRatio]);
   const totalBalance = useMemo(
     () => calculateTotalBalance(accounts),
     [accounts]
@@ -395,7 +398,7 @@ export function Extrato() {
             <p className="text-sm font-semibold text-white">{formatCurrency(spendingSnapshot.monthlyFixed)}</p>
           </div>
           <div className="bg-white/10 border border-white/10 rounded-xl p-3">
-            <p className="text-white/60">Meta invest. (20%)</p>
+            <p className="text-white/60">Meta invest. ({investmentGoalPercent}%)</p>
             <p className="text-sm font-semibold text-white">{formatCurrency(spendingSnapshot.investmentGoalValue)}</p>
           </div>
         </div>

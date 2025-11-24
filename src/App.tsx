@@ -8,6 +8,7 @@ import { Settings } from './components/Settings';
 import { QuickAddModal } from './components/QuickAddModal';
 import { FinanceDataProvider } from './hooks/useFinanceData';
 import { AuthScreen } from './components/AuthScreen';
+import { SettingsProvider } from './contexts/SettingsContext';
 
 type Screen = 'dashboard' | 'extrato' | 'cards' | 'settings';
 
@@ -21,8 +22,9 @@ function AppShell() {
   }
 
   return (
-    <FinanceDataProvider>
-      <div className="min-h-screen bg-slate-100 pb-20">
+    <SettingsProvider>
+      <FinanceDataProvider>
+        <div className="min-h-screen bg-slate-100 pb-20">
         <header className="bg-white shadow-sm sticky top-0 z-40">
           <div className="max-w-2xl mx-auto px-4 py-4 flex items-center justify-between">
             <div className="flex items-center gap-2">
@@ -107,12 +109,13 @@ function AppShell() {
           </div>
         </nav>
 
-        <QuickAddModal
-          isOpen={showAddModal}
-          onClose={() => setShowAddModal(false)}
-        />
-      </div>
-    </FinanceDataProvider>
+          <QuickAddModal
+            isOpen={showAddModal}
+            onClose={() => setShowAddModal(false)}
+          />
+        </div>
+      </FinanceDataProvider>
+    </SettingsProvider>
   );
 }
 

@@ -16,6 +16,7 @@ export function QuickAddModal({ isOpen, onClose }: QuickAddModalProps) {
     creditCards,
     addTransaction,
     addInstallmentTransaction,
+    addCategory,
   } = useFinanceData();
 
   const [type, setType] = useState<TransactionType>('Despesa');
@@ -31,6 +32,15 @@ export function QuickAddModal({ isOpen, onClose }: QuickAddModalProps) {
   const [hasInstallments, setHasInstallments] = useState(false);
   const [installments, setInstallments] = useState('1');
   const [isFixedExpense, setIsFixedExpense] = useState(false);
+  const [showNewCategory, setShowNewCategory] = useState(false);
+  const [newCategoryName, setNewCategoryName] = useState('');
+  const [newCategoryColor, setNewCategoryColor] = useState('#6366f1');
+  const [newCategoryIcon, setNewCategoryIcon] = useState('wallet');
+  const iconOptions = [
+    'wallet', 'dollar-sign', 'trending-up', 'home', 'car', 'utensils',
+    'shopping-bag', 'smile', 'briefcase', 'heart', 'music', 'phone',
+    'coffee', 'gift', 'plane', 'book', 'zap', 'star',
+  ];
 
   useEffect(() => {
     if (isOpen) {
@@ -63,6 +73,23 @@ export function QuickAddModal({ isOpen, onClose }: QuickAddModalProps) {
       }
     }
   }, [type, categories, categoryId]);
+
+  const handleCreateCategory = async () => {
+    if (!newCategoryName.trim()) return;
+    const created = await addCategory({
+      name: newCategoryName.trim(),
+      icon: newCategoryIcon,
+      color: newCategoryColor,
+      type,
+      logicTag: undefined,
+      monthlyBudget: undefined,
+    });
+    if (created) {
+      setCategoryId(created.id);
+      setShowNewCategory(false);
+      setNewCategoryName('');
+    }
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -228,6 +255,53 @@ export function QuickAddModal({ isOpen, onClose }: QuickAddModalProps) {
                     </option>
                   ))}
                 </select>
+                <div className="flex items-center justify-between mt-2">
+                  <button
+                    type="button"
+                    onClick={() => setShowNewCategory(prev => !prev)}
+                    className="text-xs font-semibold text-blue-600 hover:underline"
+                  >
+                    {showNewCategory ? 'Fechar nova categoria' : 'Nova categoria'}
+                  </button>
+                </div>
+
+                {showNewCategory && (
+                  <div className="mt-3 space-y-2 rounded-xl border border-slate-200 p-3 bg-slate-50">
+                    <input
+                      type="text"
+                      value={newCategoryName}
+                      onChange={(e) => setNewCategoryName(e.target.value)}
+                      placeholder="Nome da categoria"
+                      className="w-full px-3 py-2 rounded-lg border border-slate-200 focus:outline-none focus:ring-2 focus:ring-blue-500 text-sm"
+                    />
+                    <div className="flex gap-2">
+                      <select
+                        value={newCategoryIcon}
+                        onChange={(e) => setNewCategoryIcon(e.target.value)}
+                        className="flex-1 px-3 py-2 rounded-lg border border-slate-200 text-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+                      >
+                        {iconOptions.map(icon => (
+                          <option key={icon} value={icon}>{icon}</option>
+                        ))}
+                      </select>
+                      <input
+                        type="color"
+                        value={newCategoryColor}
+                        onChange={(e) => setNewCategoryColor(e.target.value)}
+                        className="w-16 h-10 rounded cursor-pointer border border-slate-200"
+                        aria-label="Cor da categoria"
+                      />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleCreateCategory}
+                      className="w-full py-2 bg-blue-600 text-white rounded-lg text-sm font-semibold hover:bg-blue-700 transition-colors disabled:opacity-60"
+                      disabled={!newCategoryName.trim()}
+                    >
+                      Criar e selecionar
+                    </button>
+                  </div>
+                )}
               </div>
 
               <div>
